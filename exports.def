@@ -1,0 +1,4 @@
+LIBRARY	"DynamicArrowManagerSSE"
+EXPORTS
+SKSEPlugin_Query
+SKSEPlugin_Load
