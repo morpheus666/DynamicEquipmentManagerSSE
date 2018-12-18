@@ -24,24 +24,11 @@ namespace Ammo
 {
 	class Ammo : public ISerializableForm
 	{
-	private:
-		using json = nlohmann::json;
-
-
-		enum
-		{
-			kVersion = 1
-		};
-
 	public:
 		Ammo();
 		virtual ~Ammo();
 
-		virtual const char*	ClassName() const;
-		virtual UInt32		ClassVersion() const;
-		virtual UInt32		ClassType() const;
-		bool				Save(json& a_save);
-		bool				Load(json& a_load);
+		virtual const char*	ClassName() const override;
 		RE::TESAmmo*		GetAmmoForm();
 	};
 

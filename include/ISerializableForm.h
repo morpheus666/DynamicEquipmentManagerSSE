@@ -16,7 +16,7 @@ enum
 // Needs to handle generated formIDs
 class ISerializableForm
 {
-private:
+protected:
 	using json = nlohmann::json;
 
 public:
@@ -29,11 +29,9 @@ public:
 	TES_HEAP_REDEFINE_NEW();
 
 	virtual const char*		ClassName() const = 0;
-	virtual UInt32			ClassVersion() const = 0;
-	virtual UInt32			ClassType() const = 0;
 	void					Clear();
-	virtual bool			Save(json& a_save) = 0;
-	virtual bool			Load(json& a_load) = 0;
+	virtual bool			Save(json& a_save);
+	virtual bool			Load(json& a_load);
 	void					SetForm(UInt32 a_formID);
 	constexpr UInt32		GetRawFormID() const { return _rawFormID; }
 	UInt32					GetLoadedFormID();
@@ -43,6 +41,7 @@ protected:
 	UInt32		_loadedFormID;
 	std::string	_pluginName;
 	bool		_isLightMod;
+	bool		_isGeneratedID;
 };
 
 

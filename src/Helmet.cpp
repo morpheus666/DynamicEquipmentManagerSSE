@@ -5,18 +5,19 @@
 
 #include <type_traits>  // typeid
 
+#include "Settings.h"  // Settings
 #include "version.h"  // MAKE_STR
 
 #include "RE/BaseExtraList.h"  // BaseExtraList
+#include "RE/BShkbAnimationGraph.h"  // BShkbAnimationGraph
 #include "RE/BSTEvent.h"  // EventResult, BSTEventSource
-#include "RE/ButtonEvent.h"  // ButtonEvent
+#include "RE/EnchantmentItem.h"  // EnchantmentItem
 #include "RE/EquipManager.h"  // EquipManager
 #include "RE/ExtraDataTypes.h"  // ExtraDataType
+#include "RE/ExtraEnchantment.h"  // ExtraEnchantment
 #include "RE/FormTypes.h"  // FormType
 #include "RE/InventoryEntryData.h"  // InventoryEntryData
 #include "RE/PlayerCharacter.h"  // PlayerCharacter
-#include "RE/PlayerControls.h"  // PlayerControls::Data024
-#include "RE/ReadyWeaponHandler.h"  // ReadyWeaponHandler
 #include "RE/TESObjectARMO.h"  // TESObjectARMO
 
 
@@ -37,28 +38,32 @@ namespace Helmet
 	}
 
 
-	UInt32 Helmet::ClassVersion() const
+	void Helmet::Clear()
 	{
-		return kVersion;
-	}
-
-
-	UInt32 Helmet::ClassType() const
-	{
-		return 'HLMT';
+		ISerializableForm::Clear();
+		_enchantment.Clear();
 	}
 
 
 	bool Helmet::Save(json& a_save)
 	{
 		try {
+			json helmetSave;
+			if (!ISerializableForm::Save(helmetSave)) {
+				return false;
+			}
+
+			json enchSave;
+			if (!_enchantment.Save(enchSave)) {
+				return false;
+			}
+
 			a_save = {
-				{MAKE_STR(_rawFormID), _rawFormID},
-				{MAKE_STR(_pluginName), _pluginName},
-				{MAKE_STR(_isLightMod), _isLightMod}
+				{ ClassName(), helmetSave },
+				{ _enchantment.ClassName(), enchSave }
 			};
 		} catch (std::exception& e) {
-			_ERROR("[ERROR] %s", e.what());
+			_ERROR("[ERROR] %s\n", e.what());
 			return false;
 		}
 
@@ -69,25 +74,33 @@ namespace Helmet
 	bool Helmet::Load(json& a_load)
 	{
 		try {
-			if (!loadJsonObj(a_load, MAKE_STR(_rawFormID), _rawFormID)) {
+			auto& it = a_load.find(ClassName());
+			if (it == a_load.end() || !ISerializableForm::Load(*it)) {
 				return false;
 			}
 
-			_loadedFormID = kInvalid;
-
-			if (!loadJsonObj(a_load, MAKE_STR(_pluginName), _pluginName)) {
-				return false;
-			}
-
-			if (!loadJsonObj(a_load, MAKE_STR(_isLightMod), _isLightMod)) {
+			it = a_load.find(_enchantment.ClassName());
+			if (it == a_load.end() || !_enchantment.Load(*it)) {
 				return false;
 			}
 		} catch (std::exception& e) {
-			_ERROR("[ERROR] %s", e.what());
+			_ERROR("[ERROR] %s\n", e.what());
 			return false;
 		}
 
 		return true;
+	}
+
+
+	void Helmet::SetEnchantmentForm(UInt32 a_formID)
+	{
+		_enchantment.SetForm(a_formID);
+	}
+
+
+	UInt32 Helmet::GetLoadedEnchantmentFormID()
+	{
+		return _enchantment.GetLoadedFormID();
 	}
 
 
@@ -97,6 +110,37 @@ namespace Helmet
 			return 0;
 		} else {
 			return RE::TESForm::LookupByID<RE::TESObjectARMO>(_loadedFormID);
+		}
+	}
+
+
+	RE::EnchantmentItem* Helmet::GetEnchantmentForm()
+	{
+		return _enchantment.GetEnchantmentForm();
+	}
+
+
+	Helmet::Enchantment::Enchantment() :
+		ISerializableForm()
+	{}
+
+
+	Helmet::Enchantment::~Enchantment()
+	{}
+
+
+	const char*	Helmet::Enchantment::ClassName() const
+	{
+		return MAKE_STR(Enchantment);
+	}
+
+
+	RE::EnchantmentItem* Helmet::Enchantment::GetEnchantmentForm()
+	{
+		if (GetLoadedFormID() == kInvalid) {
+			return 0;
+		} else {
+			return RE::TESForm::LookupByID<RE::EnchantmentItem>(_loadedFormID);
 		}
 	}
 
@@ -127,6 +171,31 @@ namespace Helmet
 
 		if (a_entry->type && a_entry->type->formID == g_lastEquippedHelmet.GetLoadedFormID()) {
 			RE::TESObjectARMO* armor = static_cast<RE::TESObjectARMO*>(a_entry->type);
+			RE::EnchantmentItem* enchantment = g_lastEquippedHelmet.GetEnchantmentForm();
+			if (enchantment) {
+				if (armor->objectEffect) {
+					if (armor->objectEffect->formID != enchantment->formID) {
+						return true;
+					}
+				} else {
+					if (!a_entry->extraList) {
+						return true;
+					}
+					bool found = false;
+					for (auto& xList : *a_entry->extraList) {
+						if (xList->HasType(RE::ExtraDataType::kEnchantment)) {
+							RE::ExtraEnchantment* ench = xList->GetByType<RE::ExtraEnchantment>();
+							if (ench && ench->objectEffect && ench->objectEffect->formID == enchantment->formID) {
+								found = true;
+								break;
+							}
+						}
+					}
+					if (!found) {
+						return true;
+					}
+				}
+			}
 			RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 			RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
 			RE::BaseExtraList* xList = (a_entry->extraList && !a_entry->extraList->empty()) ? a_entry->extraList->front() : 0;
@@ -145,7 +214,7 @@ namespace Helmet
 			for (auto& xList : *a_entry->extraList) {
 				if (xList->HasType(RE::ExtraDataType::kWorn)) {
 					RE::TESObjectARMO* armor = static_cast<RE::TESObjectARMO*>(a_entry->type);
-					if (armor->GetSlotMask() == FirstPersonFlag::kHead) {
+					if (armor->HasPartOf(FirstPersonFlag::kHair) && (armor->IsLightArmor() || armor->IsHeavyArmor())) {
 						RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 						RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
 						equipManager->UnEquipItem(player, armor, xList, 1, armor->equipSlot, true, false, true, false, 0);
@@ -160,45 +229,6 @@ namespace Helmet
 
 	void UnequipHelmet()
 	{}
-
-
-	class ReadyWeaponHandlerEx : public RE::ReadyWeaponHandler
-	{
-	public:
-		typedef void _ProcessButton_t(RE::ReadyWeaponHandler* a_this, RE::ButtonEvent* a_event, RE::PlayerControls::Data024* a_arg2);
-		static _ProcessButton_t* orig_ProcessButton;
-
-
-		void Hook_ProcessButton(RE::ButtonEvent* a_event, RE::PlayerControls::Data024* a_arg2)
-		{
-			if (a_event->IsDown()) {
-				RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-				TaskDelegate* dlgt = new HelmetTaskDelegate(!player->IsWeaponDrawn());
-				g_task->AddTask(dlgt);
-			}
-
-			orig_ProcessButton(this, a_event, a_arg2);
-		}
-
-
-		static void InstallHooks()
-		{
-			constexpr uintptr_t READY_WEAPON_HANDLER_VTBL = 0x016892B8;
-			RelocPtr<_ProcessButton_t*> vtbl_ProcessButton(READY_WEAPON_HANDLER_VTBL);
-			orig_ProcessButton = *vtbl_ProcessButton;
-			SafeWrite64(vtbl_ProcessButton.GetUIntPtr(), GetFnAddr(&Hook_ProcessButton));
-			_DMESSAGE("[DEBUG] Installed hook for class (%s)", typeid(ReadyWeaponHandlerEx).name());
-		}
-	};
-
-
-	ReadyWeaponHandlerEx::_ProcessButton_t* ReadyWeaponHandlerEx::orig_ProcessButton;
-
-
-	void InstallHooks()
-	{
-		ReadyWeaponHandlerEx::InstallHooks();
-	}
 
 
 	void DelayedHelmetLocator::Run()
@@ -222,6 +252,19 @@ namespace Helmet
 			for (auto& xList : *a_entry->extraList) {
 				if (xList->HasType(RE::ExtraDataType::kWorn)) {
 					g_lastEquippedHelmet.SetForm(_formID);
+					RE::TESObjectARMO* armor = static_cast<RE::TESObjectARMO*>(a_entry->type);
+					if (armor->objectEffect) {
+						g_lastEquippedHelmet.SetEnchantmentForm(armor->objectEffect->formID);
+					} else {
+						for (auto& xList : *a_entry->extraList) {
+							if (xList->HasType(RE::ExtraDataType::kEnchantment)) {
+								RE::ExtraEnchantment* ench = xList->GetByType<RE::ExtraEnchantment>();
+								if (ench && ench->objectEffect) {
+									g_lastEquippedHelmet.SetEnchantmentForm(ench->objectEffect->formID);
+								}
+							}
+						}
+					}
 					return false;
 				}
 			}
@@ -250,15 +293,91 @@ namespace Helmet
 		{
 			if (a_event->isEquipping) {
 				RE::TESObjectARMO* armor = static_cast<RE::TESObjectARMO*>(form);
-				if (armor->bipedBodyTemplate.firstPersonFlag == FirstPersonFlag::kHead) {
-					DelayedHelmetLocator* dlgt = new DelayedHelmetLocator(form->formID);
-					g_task->AddTask(dlgt);
+				if (armor->HasPartOf(FirstPersonFlag::kHair)) {
+					if (armor->IsLightArmor() || armor->IsHeavyArmor()) {
+						DelayedHelmetLocator* dlgt = new DelayedHelmetLocator(form->formID);
+						g_task->AddTask(dlgt);
+					} else {
+						g_lastEquippedHelmet.Clear();
+					}
 				}
 			}
 			break;
 		}
 		}
 		return EventResult::kContinue;
+	}
+
+
+	RE::EventResult BSAnimationGraphEventHandler::ReceiveEvent(RE::BSAnimationGraphEvent* a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
+	{
+		using RE::EventResult;
+
+		constexpr char* BeginWeaponDraw = "BeginWeaponDraw";
+		constexpr char* BeginWeaponSheathe = "BeginWeaponSheathe";
+
+		if (!a_event || !a_event->akTarget) {
+			return EventResult::kContinue;
+		}
+
+		RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+		if (a_event->akTarget->formID != player->formID) {
+			return EventResult::kContinue;
+		}
+
+		if (a_event->animName == BeginWeaponDraw) {
+			TaskDelegate* dlgt = new HelmetTaskDelegate(true);
+			g_task->AddTask(dlgt);
+		} else if (a_event->animName == BeginWeaponSheathe) {
+			TaskDelegate* dlgt = new HelmetTaskDelegate(false);
+			g_task->AddTask(dlgt);
+		}
+
+		return EventResult::kContinue;
+	}
+
+
+	class IAnimationGraphManagerHolderEx : public RE::IAnimationGraphManagerHolder
+	{
+	public:
+		typedef bool _ConstructBShkbAnimationGraph_t(RE::IAnimationGraphManagerHolder* a_this, RE::BShkbAnimationGraph*& a_out);
+		static _ConstructBShkbAnimationGraph_t* orig_ConstructBShkbAnimationGraph;
+
+
+		bool Hook_ConstructBShkbAnimationGraph(RE::BShkbAnimationGraph*& a_out)
+		{
+			bool result = orig_ConstructBShkbAnimationGraph(this, a_out);
+			if (!_sinked) {
+				a_out->GetBSAnimationGraphEventSource()->AddEventSink(&g_animationGraphEventSink);
+				_sinked = true;
+			}
+			return result;
+		}
+
+
+		static void InstallHooks()
+		{
+			if (Settings::manageHelmet) {
+				constexpr uintptr_t PLAYER_CHARACTER_I_ANIMATION_GRAPH_MANAGER_HOLDER_VTBL = 0x0167DFF0;
+				RelocPtr<_ConstructBShkbAnimationGraph_t*> vtbl_ConstructBShkbAnimationGraph(PLAYER_CHARACTER_I_ANIMATION_GRAPH_MANAGER_HOLDER_VTBL + (0x5 * 0x8));
+				orig_ConstructBShkbAnimationGraph = *vtbl_ConstructBShkbAnimationGraph;
+				SafeWrite64(vtbl_ConstructBShkbAnimationGraph.GetUIntPtr(), GetFnAddr(&Hook_ConstructBShkbAnimationGraph));
+				_DMESSAGE("Installed hook for (%s)", typeid(IAnimationGraphManagerHolderEx).name());
+			}
+		}
+
+	private:
+		static bool _sinked;
+	};
+
+
+	bool IAnimationGraphManagerHolderEx::_sinked = false;
+	IAnimationGraphManagerHolderEx::_ConstructBShkbAnimationGraph_t* IAnimationGraphManagerHolderEx::orig_ConstructBShkbAnimationGraph;
+
+
+	void InstallHooks()
+	{
+		IAnimationGraphManagerHolderEx::InstallHooks();
 	}
 
 

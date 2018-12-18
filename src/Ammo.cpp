@@ -43,60 +43,6 @@ namespace Ammo
 	}
 
 
-	UInt32 Ammo::ClassVersion() const
-	{
-		return kVersion;
-	}
-
-
-	UInt32 Ammo::ClassType() const
-	{
-		return 'AMMO';
-	}
-
-
-	bool Ammo::Save(json& a_save)
-	{
-		try {
-			a_save = {
-				{MAKE_STR(_rawFormID), _rawFormID},
-				{MAKE_STR(_pluginName), _pluginName},
-				{MAKE_STR(_isLightMod), _isLightMod}
-			};
-		} catch (std::exception& e) {
-			_ERROR("[ERROR] %s", e.what());
-			return false;
-		}
-
-		return true;
-	}
-
-
-	bool Ammo::Load(json& a_load)
-	{
-		try {
-			if (!loadJsonObj(a_load, MAKE_STR(_rawFormID), _rawFormID)) {
-				return false;
-			}
-
-			_loadedFormID = kInvalid;
-
-			if (!loadJsonObj(a_load, MAKE_STR(_pluginName), _pluginName)) {
-				return false;
-			}
-
-			if (!loadJsonObj(a_load, MAKE_STR(_isLightMod), _isLightMod)) {
-				return false;
-			}
-		} catch (std::exception& e) {
-			_ERROR("[ERROR] %s", e.what());
-			return false;
-		}
-
-		return true;
-	}
-
-
 	RE::TESAmmo* Ammo::GetAmmoForm()
 	{
 		if (GetLoadedFormID() == kInvalid) {

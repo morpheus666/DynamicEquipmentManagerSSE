@@ -6,10 +6,12 @@
 #include <ShlObj.h>  // CSIDL_MYDOCUMENTS
 
 #include "Ammo.h"  // g_lastEquippedAmmo, g_equipEventSink
-#include "Exceptions.h"  // bad_record_info, bad_record_read, bad_ammo_save, bad_ammo_load
+#include "Exceptions.h"  // bad_record_info, bad_record_version, bad_record_read, bad_ammo_save, bad_helmet_save, bad_ammo_load, bad_helmet_load
+#include "Helmet.h"  // g_lastEquippedHelmet, g_equipEventSink
 #include "json.hpp"  // json
 #include "PlayerInventoryChanges.h"  // g_task
-#include "version.h"  // DYNAMICARROWMANAGERSSE_VERSION_VERSTRING
+#include "Settings.h"  // Settings
+#include "version.h"  // DNEM_VERSION_VERSTRING
 
 #include "RE/ScriptEventSourceHolder.h"  // ScriptEventSourceHolder
 
@@ -19,23 +21,38 @@ static SKSEMessagingInterface*		g_messaging = 0;
 static SKSESerializationInterface*	g_serialization = 0;
 
 
+constexpr UInt32 SERIALIZATION_VERSION = 2;
+
+
 void SaveCallback(SKSESerializationInterface* a_intfc)
 {
 	using nlohmann::json;
 	using Ammo::g_lastEquippedAmmo;
+	using Helmet::g_lastEquippedHelmet;
 
 	try {
-		json save;
-		if (!g_lastEquippedAmmo.Save(save)) {
+		json ammoSave;
+		if (!g_lastEquippedAmmo.Save(ammoSave)) {
+			g_lastEquippedAmmo.Clear();
 			throw bad_ammo_save();
 		}
 
+		json helmetSave;
+		if (!g_lastEquippedHelmet.Save(helmetSave)) {
+			g_lastEquippedHelmet.Clear();
+			throw bad_helmet_save();
+		}
+
+		json save = {
+			{ g_lastEquippedAmmo.ClassName(), ammoSave },
+			{ g_lastEquippedHelmet.ClassName(), helmetSave }
+		};
+
 		std::string buf = save.dump(4);
 #if _DEBUG
-		_DMESSAGE("\n[DEBUG] SERIALIZATION SAVE DUMP");
-		_DMESSAGE("%s\n", buf.c_str());
+		_DMESSAGE("\nSERIALIZATION SAVE DUMP\n%s\n", buf.c_str());
 #endif
-		g_serialization->WriteRecord(g_lastEquippedAmmo.ClassType(), g_lastEquippedAmmo.ClassVersion(), buf.c_str(), buf.length() + 1);
+		g_serialization->WriteRecord('DNAM', SERIALIZATION_VERSION, buf.c_str(), buf.length() + 1);
 	} catch (std::exception& e) {
 		_ERROR("[ERROR] %s", e.what());
 	}
@@ -48,6 +65,7 @@ void LoadCallback(SKSESerializationInterface* a_intfc)
 {
 	using nlohmann::json;
 	using Ammo::g_lastEquippedAmmo;
+	using Helmet::g_lastEquippedHelmet;
 
 	UInt32 type;
 	UInt32 version;
@@ -55,10 +73,15 @@ void LoadCallback(SKSESerializationInterface* a_intfc)
 	char* buf = 0;
 
 	g_lastEquippedAmmo.Clear();
+	g_lastEquippedHelmet.Clear();
 
 	try {
 		if (!a_intfc->GetNextRecordInfo(&type, &version, &length)) {
 			throw bad_record_info();
+		}
+
+		if (version != SERIALIZATION_VERSION) {
+			throw bad_record_version(SERIALIZATION_VERSION, version);
 		}
 
 		buf = new char[length];
@@ -69,16 +92,22 @@ void LoadCallback(SKSESerializationInterface* a_intfc)
 		json load = json::parse(buf);
 
 #if _DEBUG
-		_DMESSAGE("\n[DEBUG] SERIALIZATION LOAD DUMP");
-		_DMESSAGE("%s\n", load.dump(4).c_str());
+		_DMESSAGE("\nSERIALIZATION LOAD DUMP\n%s\n", load.dump(4).c_str());
 #endif
 
-		if (!g_lastEquippedAmmo.Load(load)) {
+		auto& it = load.find(g_lastEquippedAmmo.ClassName());
+		if (it == load.end() || !g_lastEquippedAmmo.Load(*it)) {
+			g_lastEquippedAmmo.Clear();
 			throw bad_ammo_load();
+		}
+
+		it = load.find(g_lastEquippedHelmet.ClassName());
+		if (it == load.end() || !g_lastEquippedHelmet.Load(*it)) {
+			g_lastEquippedHelmet.Clear();
+			throw bad_helmet_load();
 		}
 	} catch (std::exception& e) {
 		_ERROR("[ERROR] %s\n", e.what());
-		g_lastEquippedAmmo.Clear();
 	}
 
 	delete buf;
@@ -93,9 +122,18 @@ void MessageHandler(SKSEMessagingInterface::Message* a_msg)
 	switch (a_msg->type) {
 	case SKSEMessagingInterface::kMessage_DataLoaded:
 	{
+		Helmet::InstallHooks();
+		_MESSAGE("[MESSAGE] Installed hooks");
+
 		RE::ScriptEventSourceHolder* sourceHolder = RE::ScriptEventSourceHolder::GetSingleton();
-		sourceHolder->equipEventSource.AddEventSink(&Ammo::g_equipEventSink);
-		_MESSAGE("[MESSAGE] Registered equip event handler");
+		if (Settings::manageAmmo) {
+			sourceHolder->equipEventSource.AddEventSink(&Ammo::g_equipEventSink);
+			_MESSAGE("[MESSAGE] Registered ammo equip event handler");
+		}
+		if (Settings::manageHelmet) {
+			sourceHolder->equipEventSource.AddEventSink(&Helmet::g_equipEventSink);
+			_MESSAGE("[MESSAGE] Registered helmet equip event handler");
+		}
 		break;
 	}
 	}
@@ -105,14 +143,14 @@ void MessageHandler(SKSEMessagingInterface::Message* a_msg)
 extern "C" {
 	bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
 	{
-		gLog.OpenRelative(CSIDL_MYDOCUMENTS, "\\My Games\\Skyrim Special Edition\\SKSE\\DynamicArrowManagerSSE.log");
+		gLog.OpenRelative(CSIDL_MYDOCUMENTS, "\\My Games\\Skyrim Special Edition\\SKSE\\DynamicEquipmentManagerSSE.log");
 		gLog.SetPrintLevel(IDebugLog::kLevel_DebugMessage);
 		gLog.SetLogLevel(IDebugLog::kLevel_DebugMessage);
 
-		_MESSAGE("DynamicArrowManagerSSE v%s", DYNAMICARROWMANAGERSSE_VERSION_VERSTRING);
+		_MESSAGE("DynamicEquipmentManagerSSE v%s", DNEM_VERSION_VERSTRING);
 
 		a_info->infoVersion = PluginInfo::kInfoVersion;
-		a_info->name = "DynamicArrowManagerSSE";
+		a_info->name = "DynamicEquipmentManagerSSE";
 		a_info->version = 1;
 
 		g_pluginHandle = a_skse->GetPluginHandle();
@@ -133,7 +171,17 @@ extern "C" {
 
 	bool SKSEPlugin_Load(const SKSEInterface* a_skse)
 	{
-		_MESSAGE("[MESSAGE] DynamicArrowManagerSSE loaded");
+		_MESSAGE("[MESSAGE] DynamicEquipmentManagerSSE loaded");
+
+		if (Settings::loadSettings()) {
+			_MESSAGE("[MESSAGE] Settings loaded successfully");
+#if _DEBUG
+			Settings::dump();
+#endif
+		} else {
+			_FATALERROR("[FATAL ERROR] Failed to load settings!\n");
+			return false;
+		}
 
 		g_task = (SKSETaskInterface*)a_skse->QueryInterface(kInterface_Task);
 		if (g_task) {
@@ -153,7 +201,7 @@ extern "C" {
 
 		g_serialization = (SKSESerializationInterface*)a_skse->QueryInterface(kInterface_Serialization);
 		if (g_serialization) {
-			g_serialization->SetUniqueID(g_pluginHandle, 'DNAM');
+			g_serialization->SetUniqueID(g_pluginHandle, 'DNEM');
 			g_serialization->SetSaveCallback(g_pluginHandle, SaveCallback);
 			g_serialization->SetLoadCallback(g_pluginHandle, LoadCallback);
 			_MESSAGE("[MESSAGE] Serialization interface query successful");

@@ -1,4 +1,4 @@
-LIBRARY	"DynamicArrowManagerSSE"
+LIBRARY	"DynamicEquipmentManagerSSE"
 EXPORTS
 SKSEPlugin_Query
 SKSEPlugin_Load

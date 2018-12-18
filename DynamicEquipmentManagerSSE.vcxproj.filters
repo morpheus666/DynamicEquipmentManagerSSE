@@ -30,6 +30,9 @@
     <ClCompile Include="src\ISerializableForm.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\Settings.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\version.h">
@@ -54,6 +57,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="include\ISerializableForm.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Settings.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
