@@ -153,14 +153,20 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Ammo.cpp" />
-    <ClCompile Include="src\Events.cpp" />
+    <ClCompile Include="src\Forms.cpp" />
+    <ClCompile Include="src\Helmet.cpp" />
+    <ClCompile Include="src\ISerializableForm.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\PlayerInventoryChanges.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Ammo.h" />
-    <ClInclude Include="include\Events.h" />
     <ClInclude Include="include\Exceptions.h" />
+    <ClInclude Include="include\Forms.h" />
+    <ClInclude Include="include\Helmet.h" />
+    <ClInclude Include="include\ISerializableForm.h" />
     <ClInclude Include="include\json.hpp" />
+    <ClInclude Include="include\PlayerInventoryChanges.h" />
     <ClInclude Include="include\version.h" />
   </ItemGroup>
   <ItemGroup>

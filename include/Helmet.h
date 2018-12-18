@@ -2,27 +2,23 @@
 
 #include "skse64/gamethreads.h"  // TaskDelegate
 
-#include <string>  // string
-
-#include "ISerializableForm.h"  // ISerializableForm, kInvalid
+#include "ISerializableForm.h"  // ISerializableForm
 #include "json.hpp"  // json
 #include "PlayerInventoryChanges.h"  // InventoryChangesVisitor
 
 #include "RE/BSTEvent.h"  // BSTEventSink, EventResult, BSTEventSource
-#include "RE/FormTypes.h"  // TESAmmo
 #include "RE/Memory.h"  // TES_HEAP_REDEFINE_NEW
 #include "RE/TESEquipEvent.h"  // TESEquipEvent
 
 namespace RE
 {
-	class BaseExtraList;
-	class InventoryEntryData;
+	class TESObjectARMO;
 }
 
 
-namespace Ammo
+namespace Helmet
 {
-	class Ammo : public ISerializableForm
+	class Helmet : public ISerializableForm
 	{
 	private:
 		using json = nlohmann::json;
@@ -34,78 +30,90 @@ namespace Ammo
 		};
 
 	public:
-		Ammo();
-		virtual ~Ammo();
+		Helmet();
+		virtual ~Helmet();
 
 		virtual const char*	ClassName() const;
 		virtual UInt32		ClassVersion() const;
 		virtual UInt32		ClassType() const;
 		bool				Save(json& a_save);
 		bool				Load(json& a_load);
-		RE::TESAmmo*		GetAmmoForm();
+		RE::TESObjectARMO*	GetArmorForm();
 	};
 
 
-	class DelayedWeaponTaskDelegate : public TaskDelegate
+	class HelmetTaskDelegate : public TaskDelegate
 	{
 	public:
-		class Visitor : public InventoryChangesVisitor
-		{
-		public:
-			constexpr Visitor() :
-				_extraList(0),
-				_count(0)
-			{}
-
-			virtual bool					Accept(RE::InventoryEntryData* a_entry) override;
-			constexpr RE::BaseExtraList*	ExtraList() const { return _extraList; }
-			constexpr SInt32				Count() const { return _count; }
-
-		private:
-			RE::BaseExtraList*	_extraList;
-			SInt32				_count;
-		};
-
-		virtual void Run() override;
-		virtual void Dispose() override;
-
-		TES_HEAP_REDEFINE_NEW();
-	};
-
-
-	class DelayedAmmoTaskDelegate : public TaskDelegate
-	{
-	public:
-		class Visitor : public InventoryChangesVisitor
+		class HelmetEquipVisitor : public InventoryChangesVisitor
 		{
 		public:
 			virtual bool Accept(RE::InventoryEntryData* a_entry) override;
 		};
 
+
+		class HelmetUnEquipVisitor : public InventoryChangesVisitor
+		{
+		public:
+			virtual bool Accept(RE::InventoryEntryData* a_entry) override;
+		};
+
+
+		constexpr HelmetTaskDelegate(bool a_equip) :
+			_equip(a_equip)
+		{}
+
 		virtual void Run() override;
 		virtual void Dispose() override;
 
 		TES_HEAP_REDEFINE_NEW();
+
+	private:
+		bool _equip;
+	};
+
+
+	class DelayedHelmetLocator : public TaskDelegate
+	{
+	public:
+		class Visitor : public InventoryChangesVisitor
+		{
+		public:
+			constexpr explicit Visitor(UInt32 a_formID) :
+				_formID(a_formID)
+			{}
+
+			virtual bool Accept(RE::InventoryEntryData* a_entry) override;
+
+		private:
+			UInt32 _formID;
+		};
+
+
+		constexpr explicit DelayedHelmetLocator(UInt32 a_formID) :
+			_formID(a_formID)
+		{}
+
+		virtual void Run() override;
+		virtual void Dispose() override;
+
+		TES_HEAP_REDEFINE_NEW();
+
+	private:
+		UInt32 _formID;
 	};
 
 
 	class TESEquipEventHandler : public RE::BSTEventSink<RE::TESEquipEvent>
 	{
 	public:
-		class Visitor : public InventoryChangesVisitor
-		{
-		public:
-			virtual bool Accept(RE::InventoryEntryData* a_entry) override;
-		};
-
-
 		virtual RE::EventResult ReceiveEvent(RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>* a_eventSource) override;
 	};
 
 
-	static UInt32 g_equippedAmmoFormID = kInvalid;
-	static UInt32 g_equippedWeaponFormID = kInvalid;
+	void InstallHooks();
 
-	extern Ammo g_lastEquippedAmmo;
+
+	extern Helmet g_lastEquippedHelmet;
 	extern TESEquipEventHandler g_equipEventSink;
 }

@@ -15,18 +15,24 @@
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Events.cpp">
+    <ClCompile Include="src\Ammo.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Ammo.cpp">
+    <ClCompile Include="src\PlayerInventoryChanges.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Forms.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Helmet.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ISerializableForm.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\version.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Events.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="include\Ammo.h">
@@ -36,6 +42,18 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="include\Exceptions.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PlayerInventoryChanges.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Forms.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Helmet.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ISerializableForm.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

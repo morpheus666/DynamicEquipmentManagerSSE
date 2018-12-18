@@ -5,10 +5,10 @@
 
 #include <ShlObj.h>  // CSIDL_MYDOCUMENTS
 
-#include "Ammo.h"  // g_lastEquippedAmmo
-#include "Events.h"  // g_equipEventHandler, g_task
+#include "Ammo.h"  // g_lastEquippedAmmo, g_equipEventSink
 #include "Exceptions.h"  // bad_record_info, bad_record_read, bad_ammo_save, bad_ammo_load
 #include "json.hpp"  // json
+#include "PlayerInventoryChanges.h"  // g_task
 #include "version.h"  // DYNAMICARROWMANAGERSSE_VERSION_VERSTRING
 
 #include "RE/ScriptEventSourceHolder.h"  // ScriptEventSourceHolder
@@ -22,6 +22,7 @@ static SKSESerializationInterface*	g_serialization = 0;
 void SaveCallback(SKSESerializationInterface* a_intfc)
 {
 	using nlohmann::json;
+	using Ammo::g_lastEquippedAmmo;
 
 	try {
 		json save;
@@ -46,6 +47,7 @@ void SaveCallback(SKSESerializationInterface* a_intfc)
 void LoadCallback(SKSESerializationInterface* a_intfc)
 {
 	using nlohmann::json;
+	using Ammo::g_lastEquippedAmmo;
 
 	UInt32 type;
 	UInt32 version;
@@ -74,7 +76,6 @@ void LoadCallback(SKSESerializationInterface* a_intfc)
 		if (!g_lastEquippedAmmo.Load(load)) {
 			throw bad_ammo_load();
 		}
-
 	} catch (std::exception& e) {
 		_ERROR("[ERROR] %s\n", e.what());
 		g_lastEquippedAmmo.Clear();
@@ -93,7 +94,7 @@ void MessageHandler(SKSEMessagingInterface::Message* a_msg)
 	case SKSEMessagingInterface::kMessage_DataLoaded:
 	{
 		RE::ScriptEventSourceHolder* sourceHolder = RE::ScriptEventSourceHolder::GetSingleton();
-		sourceHolder->equipEventSource.AddEventSink(&g_equipEventHandler);
+		sourceHolder->equipEventSource.AddEventSink(&Ammo::g_equipEventSink);
 		_MESSAGE("[MESSAGE] Registered equip event handler");
 		break;
 	}
