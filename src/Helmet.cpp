@@ -291,19 +291,23 @@ namespace Helmet
 		switch (form->formType) {
 		case RE::FormType::Armor:
 		{
-			if (a_event->isEquipping) {
-				RE::TESObjectARMO* armor = static_cast<RE::TESObjectARMO*>(form);
-				if (armor->HasPartOf(FirstPersonFlag::kHair)) {
-					if (armor->IsLightArmor() || armor->IsHeavyArmor()) {
+			RE::TESObjectARMO* armor = static_cast<RE::TESObjectARMO*>(form);
+			if (armor->HasPartOf(FirstPersonFlag::kHair)) {
+				if (armor->IsLightArmor() || armor->IsHeavyArmor()) {
+					if (a_event->isEquipping) {
 						DelayedHelmetLocator* dlgt = new DelayedHelmetLocator(form->formID);
 						g_task->AddTask(dlgt);
 					} else {
-						g_lastEquippedHelmet.Clear();
+						if (player->IsWeaponDrawn()) {
+							g_lastEquippedHelmet.Clear();
+						}
 					}
+				} else {
+					g_lastEquippedHelmet.Clear();
 				}
 			}
-			break;
 		}
+		break;
 		}
 		return EventResult::kContinue;
 	}
@@ -313,8 +317,8 @@ namespace Helmet
 	{
 		using RE::EventResult;
 
-		constexpr char* BeginWeaponDraw = "BeginWeaponDraw";
-		constexpr char* BeginWeaponSheathe = "BeginWeaponSheathe";
+		constexpr char* weaponDraw = "weaponDraw";
+		constexpr char* weaponSheathe = "weaponSheathe";
 
 		if (!a_event || !a_event->akTarget) {
 			return EventResult::kContinue;
@@ -325,10 +329,10 @@ namespace Helmet
 			return EventResult::kContinue;
 		}
 
-		if (a_event->animName == BeginWeaponDraw) {
+		if (a_event->animName == weaponDraw) {
 			TaskDelegate* dlgt = new HelmetTaskDelegate(true);
 			g_task->AddTask(dlgt);
-		} else if (a_event->animName == BeginWeaponSheathe) {
+		} else if (a_event->animName == weaponSheathe) {
 			TaskDelegate* dlgt = new HelmetTaskDelegate(false);
 			g_task->AddTask(dlgt);
 		}
@@ -337,50 +341,7 @@ namespace Helmet
 	}
 
 
-	class IAnimationGraphManagerHolderEx : public RE::IAnimationGraphManagerHolder
-	{
-	public:
-		typedef bool _ConstructBShkbAnimationGraph_t(RE::IAnimationGraphManagerHolder* a_this, RE::BShkbAnimationGraph*& a_out);
-		static _ConstructBShkbAnimationGraph_t* orig_ConstructBShkbAnimationGraph;
-
-
-		bool Hook_ConstructBShkbAnimationGraph(RE::BShkbAnimationGraph*& a_out)
-		{
-			bool result = orig_ConstructBShkbAnimationGraph(this, a_out);
-			if (!_sinked) {
-				a_out->GetBSAnimationGraphEventSource()->AddEventSink(&g_animationGraphEventSink);
-				_sinked = true;
-			}
-			return result;
-		}
-
-
-		static void InstallHooks()
-		{
-			if (Settings::manageHelmet) {
-				constexpr uintptr_t PLAYER_CHARACTER_I_ANIMATION_GRAPH_MANAGER_HOLDER_VTBL = 0x0167DFF0;
-				RelocPtr<_ConstructBShkbAnimationGraph_t*> vtbl_ConstructBShkbAnimationGraph(PLAYER_CHARACTER_I_ANIMATION_GRAPH_MANAGER_HOLDER_VTBL + (0x5 * 0x8));
-				orig_ConstructBShkbAnimationGraph = *vtbl_ConstructBShkbAnimationGraph;
-				SafeWrite64(vtbl_ConstructBShkbAnimationGraph.GetUIntPtr(), GetFnAddr(&Hook_ConstructBShkbAnimationGraph));
-				_DMESSAGE("Installed hook for (%s)", typeid(IAnimationGraphManagerHolderEx).name());
-			}
-		}
-
-	private:
-		static bool _sinked;
-	};
-
-
-	bool IAnimationGraphManagerHolderEx::_sinked = false;
-	IAnimationGraphManagerHolderEx::_ConstructBShkbAnimationGraph_t* IAnimationGraphManagerHolderEx::orig_ConstructBShkbAnimationGraph;
-
-
-	void InstallHooks()
-	{
-		IAnimationGraphManagerHolderEx::InstallHooks();
-	}
-
-
 	Helmet g_lastEquippedHelmet;
 	TESEquipEventHandler g_equipEventSink;
+	BSAnimationGraphEventHandler g_animationGraphEventSink;
 }

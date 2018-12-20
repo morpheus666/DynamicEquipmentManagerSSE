@@ -41,9 +41,6 @@
     <ClInclude Include="include\Ammo.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="include\json.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="include\Exceptions.h">
       <Filter>include</Filter>
     </ClInclude>

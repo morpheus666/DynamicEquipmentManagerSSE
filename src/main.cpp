@@ -8,11 +8,14 @@
 #include "Ammo.h"  // g_lastEquippedAmmo, g_equipEventSink
 #include "Exceptions.h"  // bad_record_info, bad_record_version, bad_record_read, bad_ammo_save, bad_helmet_save, bad_ammo_load, bad_helmet_load
 #include "Helmet.h"  // g_lastEquippedHelmet, g_equipEventSink
+#include "HookShare.h"  // HookShare
 #include "json.hpp"  // json
 #include "PlayerInventoryChanges.h"  // g_task
 #include "Settings.h"  // Settings
 #include "version.h"  // DNEM_VERSION_VERSTRING
 
+#include "RE/BShkbAnimationGraph.h"  // BShkbAnimationGraph
+#include "RE/PlayerCharacter.h"  // PlayerCharacter
 #include "RE/ScriptEventSourceHolder.h"  // ScriptEventSourceHolder
 
 
@@ -117,14 +120,49 @@ void LoadCallback(SKSESerializationInterface* a_intfc)
 }
 
 
+void RegisterForPlayerAnimationEvent(RE::TESObjectREFR* a_refr, RE::BShkbAnimationGraphPtr& a_animGraph)
+{
+	static bool sinked = false;
+	RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+	if (!sinked && a_refr->formID == player->formID) {
+		a_animGraph->GetBSAnimationGraphEventSource()->AddEventSink(&Helmet::g_animationGraphEventSink);
+		sinked = true;
+	}
+	_MESSAGE("[MESSAGE] Registered player animation event handler");
+}
+
+
+void HooksReady(SKSEMessagingInterface::Message* a_msg)
+{
+	using HookShare::_RegisterForAnimationGraphEvent_t;
+	using HookShare::Hook;
+
+	switch (a_msg->type) {
+	case HookShare::kType_AnimationGraphEvent:
+		if (a_msg->dataLen == HOOK_SHARE_API_VERSION_MAJOR) {
+			_RegisterForAnimationGraphEvent_t* _RegisterForAnimationGraphEvent = static_cast<_RegisterForAnimationGraphEvent_t*>(a_msg->data);
+			_RegisterForAnimationGraphEvent(RegisterForPlayerAnimationEvent, Hook::kPlayerAnimationGraphEvent);
+			_MESSAGE("[MESSAGE] Hooks registered");
+		} else {
+			_FATALERROR("[FATAL ERROR] An incompatible version of Hook Share SSE was loaded! Expected (%i), found (%i)!\n", HOOK_SHARE_API_VERSION_MAJOR, a_msg->type);
+		}
+		break;
+	}
+}
+
+
 void MessageHandler(SKSEMessagingInterface::Message* a_msg)
 {
 	switch (a_msg->type) {
+	case SKSEMessagingInterface::kMessage_PostPostLoad:
+		if (g_messaging->RegisterListener(g_pluginHandle, "HookShareSSE", HooksReady)) {
+			_MESSAGE("[MESSAGE] Registered HookShareSSE listener");
+		} else {
+			_FATALERROR("[FATAL ERROR] HookShareSSE not loaded!\n");
+		}
+		break;
 	case SKSEMessagingInterface::kMessage_DataLoaded:
 	{
-		Helmet::InstallHooks();
-		_MESSAGE("[MESSAGE] Installed hooks");
-
 		RE::ScriptEventSourceHolder* sourceHolder = RE::ScriptEventSourceHolder::GetSingleton();
 		if (Settings::manageAmmo) {
 			sourceHolder->equipEventSource.AddEventSink(&Ammo::g_equipEventSink);

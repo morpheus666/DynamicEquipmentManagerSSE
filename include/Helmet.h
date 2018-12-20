@@ -134,11 +134,7 @@ namespace Helmet
 	};
 
 
-	void InstallHooks();
-
-
-	static BSAnimationGraphEventHandler g_animationGraphEventSink;
-
 	extern Helmet g_lastEquippedHelmet;
 	extern TESEquipEventHandler g_equipEventSink;
+	extern BSAnimationGraphEventHandler g_animationGraphEventSink;
 }
