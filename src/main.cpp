@@ -155,10 +155,12 @@ void MessageHandler(SKSEMessagingInterface::Message* a_msg)
 {
 	switch (a_msg->type) {
 	case SKSEMessagingInterface::kMessage_PostPostLoad:
-		if (g_messaging->RegisterListener(g_pluginHandle, "HookShareSSE", HooksReady)) {
-			_MESSAGE("[MESSAGE] Registered HookShareSSE listener");
-		} else {
-			_FATALERROR("[FATAL ERROR] HookShareSSE not loaded!\n");
+		if (Settings::manageHelmet) {
+			if (g_messaging->RegisterListener(g_pluginHandle, "HookShareSSE", HooksReady)) {
+				_MESSAGE("[MESSAGE] Registered HookShareSSE listener");
+			} else {
+				_FATALERROR("[FATAL ERROR] HookShareSSE not loaded!\n");
+			}
 		}
 		break;
 	case SKSEMessagingInterface::kMessage_DataLoaded:
