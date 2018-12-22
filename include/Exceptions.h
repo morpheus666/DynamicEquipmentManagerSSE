@@ -53,6 +53,16 @@ public:
 };
 
 
+class bad_shield_save : public std::exception
+{
+public:
+	virtual const char* what() const throw() override
+	{
+		return "Failure while saving shield!";
+	}
+};
+
+
 class bad_ammo_load : public std::exception
 {
 public:
@@ -69,5 +79,15 @@ public:
 	virtual const char* what() const throw() override
 	{
 		return "Failure while loading helmet!";
+	}
+};
+
+
+class bad_shield_load : public std::exception
+{
+public:
+	virtual const char* what() const throw() override
+	{
+		return "Failure while loading shield!";
 	}
 };

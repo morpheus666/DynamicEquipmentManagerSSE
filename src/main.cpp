@@ -6,12 +6,13 @@
 #include <ShlObj.h>  // CSIDL_MYDOCUMENTS
 
 #include "Ammo.h"  // g_lastEquippedAmmo, g_equipEventSink
-#include "Exceptions.h"  // bad_record_info, bad_record_version, bad_record_read, bad_ammo_save, bad_helmet_save, bad_ammo_load, bad_helmet_load
+#include "Exceptions.h"  // bad_record_info, bad_record_version, bad_record_read, bad_ammo_save, bad_helmet_save, bad_shield_save, bad_ammo_load, bad_helmet_load, bad_shield_load
 #include "Helmet.h"  // g_lastEquippedHelmet, g_equipEventSink
 #include "HookShare.h"  // HookShare
 #include "json.hpp"  // json
 #include "PlayerInventoryChanges.h"  // g_task
 #include "Settings.h"  // Settings
+#include "Shield.h"  // g_lastEquippedShield
 #include "version.h"  // DNEM_VERSION_VERSTRING
 
 #include "RE/BShkbAnimationGraph.h"  // BShkbAnimationGraph
@@ -23,7 +24,6 @@ static PluginHandle					g_pluginHandle = kPluginHandle_Invalid;
 static SKSEMessagingInterface*		g_messaging = 0;
 static SKSESerializationInterface*	g_serialization = 0;
 
-
 constexpr UInt32 SERIALIZATION_VERSION = 2;
 
 
@@ -32,6 +32,7 @@ void SaveCallback(SKSESerializationInterface* a_intfc)
 	using nlohmann::json;
 	using Ammo::g_lastEquippedAmmo;
 	using Helmet::g_lastEquippedHelmet;
+	using Shield::g_lastEquippedShield;
 
 	try {
 		json ammoSave;
@@ -46,9 +47,16 @@ void SaveCallback(SKSESerializationInterface* a_intfc)
 			throw bad_helmet_save();
 		}
 
+		json shieldSave;
+		if (!g_lastEquippedShield.Save(shieldSave)) {
+			g_lastEquippedShield.Clear();
+			throw bad_shield_save();
+		}
+
 		json save = {
 			{ g_lastEquippedAmmo.ClassName(), ammoSave },
-			{ g_lastEquippedHelmet.ClassName(), helmetSave }
+			{ g_lastEquippedHelmet.ClassName(), helmetSave },
+			{ g_lastEquippedShield.ClassName(), shieldSave }
 		};
 
 		std::string buf = save.dump(4);
@@ -69,6 +77,7 @@ void LoadCallback(SKSESerializationInterface* a_intfc)
 	using nlohmann::json;
 	using Ammo::g_lastEquippedAmmo;
 	using Helmet::g_lastEquippedHelmet;
+	using Shield::g_lastEquippedShield;
 
 	UInt32 type;
 	UInt32 version;
@@ -77,6 +86,7 @@ void LoadCallback(SKSESerializationInterface* a_intfc)
 
 	g_lastEquippedAmmo.Clear();
 	g_lastEquippedHelmet.Clear();
+	g_lastEquippedShield.Clear();
 
 	try {
 		if (!a_intfc->GetNextRecordInfo(&type, &version, &length)) {
@@ -109,6 +119,12 @@ void LoadCallback(SKSESerializationInterface* a_intfc)
 			g_lastEquippedHelmet.Clear();
 			throw bad_helmet_load();
 		}
+
+		it = load.find(g_lastEquippedShield.ClassName());
+		if (it == load.end() || !g_lastEquippedShield.Load(*it)) {
+			g_lastEquippedShield.Clear();
+			throw bad_shield_load();
+		}
 	} catch (std::exception& e) {
 		_ERROR("[ERROR] %s\n", e.what());
 	}
@@ -122,13 +138,17 @@ void LoadCallback(SKSESerializationInterface* a_intfc)
 
 void RegisterForPlayerAnimationEvent(RE::TESObjectREFR* a_refr, RE::BShkbAnimationGraphPtr& a_animGraph)
 {
-	static bool sinked = false;
 	RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-	if (!sinked && a_refr->formID == player->formID) {
-		a_animGraph->GetBSAnimationGraphEventSource()->AddEventSink(&Helmet::g_animationGraphEventSink);
-		sinked = true;
+	if (a_refr->formID == player->formID) {
+		if (Settings::manageHelmet) {
+			a_animGraph->GetBSAnimationGraphEventSource()->AddEventSink(&Helmet::g_animationGraphEventSink);
+			_MESSAGE("[MESSAGE] Registered helmet player animation event handler");
+		}
+		if (Settings::manageShield) {
+			a_animGraph->GetBSAnimationGraphEventSource()->AddEventSink(&Shield::g_animationGraphEventSink);
+			_MESSAGE("[MESSAGE] Registered shield player animation event handler");
+		}
 	}
-	_MESSAGE("[MESSAGE] Registered player animation event handler");
 }
 
 
@@ -155,12 +175,10 @@ void MessageHandler(SKSEMessagingInterface::Message* a_msg)
 {
 	switch (a_msg->type) {
 	case SKSEMessagingInterface::kMessage_PostPostLoad:
-		if (Settings::manageHelmet) {
-			if (g_messaging->RegisterListener(g_pluginHandle, "HookShareSSE", HooksReady)) {
-				_MESSAGE("[MESSAGE] Registered HookShareSSE listener");
-			} else {
-				_FATALERROR("[FATAL ERROR] HookShareSSE not loaded!\n");
-			}
+		if (g_messaging->RegisterListener(g_pluginHandle, "HookShareSSE", HooksReady)) {
+			_MESSAGE("[MESSAGE] Registered HookShareSSE listener");
+		} else {
+			_FATALERROR("[FATAL ERROR] HookShareSSE not loaded!\n");
 		}
 		break;
 	case SKSEMessagingInterface::kMessage_DataLoaded:
@@ -173,6 +191,10 @@ void MessageHandler(SKSEMessagingInterface::Message* a_msg)
 		if (Settings::manageHelmet) {
 			sourceHolder->equipEventSource.AddEventSink(&Helmet::g_equipEventSink);
 			_MESSAGE("[MESSAGE] Registered helmet equip event handler");
+		}
+		if (Settings::manageShield) {
+			sourceHolder->equipEventSource.AddEventSink(&Shield::g_equipEventSink);
+			_MESSAGE("[MESSAGE] Registered shield equip event handler");
 		}
 		break;
 	}
@@ -248,6 +270,11 @@ extern "C" {
 		} else {
 			_FATALERROR("[FATAL ERROR] Serialization interface query failed!\n");
 			return false;
+		}
+
+		if (Settings::manageShield) {
+			Shield::InstallHooks();
+			_MESSAGE("[MESSAGE] Installed hooks for shield");
 		}
 
 		return true;

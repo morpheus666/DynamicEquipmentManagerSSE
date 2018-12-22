@@ -13,6 +13,7 @@ public:
 
 	static bSetting	manageAmmo;
 	static bSetting	manageHelmet;
+	static bSetting	manageShield;
 
 private:
 	static constexpr char* FILE_NAME = "Data\\SKSE\\Plugins\\DynamicEquipmentManagerSSE.json";

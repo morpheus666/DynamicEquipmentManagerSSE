@@ -162,6 +162,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\PlayerInventoryChanges.cpp" />
     <ClCompile Include="src\Settings.cpp" />
+    <ClCompile Include="src\Shield.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Ammo.h" />
@@ -171,6 +172,7 @@
     <ClInclude Include="include\ISerializableForm.h" />
     <ClInclude Include="include\PlayerInventoryChanges.h" />
     <ClInclude Include="include\Settings.h" />
+    <ClInclude Include="include\Shield.h" />
     <ClInclude Include="include\version.h" />
   </ItemGroup>
   <ItemGroup>

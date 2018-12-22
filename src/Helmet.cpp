@@ -169,7 +169,7 @@ namespace Helmet
 	{
 		typedef RE::BGSBipedObjectForm::BipedBodyTemplate::FirstPersonFlag FirstPersonFlag;
 
-		if (a_entry->type && a_entry->type->formID == g_lastEquippedHelmet.GetLoadedFormID()) {
+		if (a_entry->type->formID == g_lastEquippedHelmet.GetLoadedFormID()) {
 			RE::TESObjectARMO* armor = static_cast<RE::TESObjectARMO*>(a_entry->type);
 			RE::EnchantmentItem* enchantment = g_lastEquippedHelmet.GetEnchantmentForm();
 			if (enchantment) {
@@ -248,9 +248,10 @@ namespace Helmet
 
 	bool DelayedHelmetLocator::Visitor::Accept(RE::InventoryEntryData* a_entry)
 	{
-		if (a_entry->type && a_entry->type->formID == _formID && a_entry->extraList) {
+		if (a_entry->type->formID == _formID && a_entry->extraList) {
 			for (auto& xList : *a_entry->extraList) {
 				if (xList->HasType(RE::ExtraDataType::kWorn)) {
+					g_lastEquippedHelmet.Clear();
 					g_lastEquippedHelmet.SetForm(_formID);
 					RE::TESObjectARMO* armor = static_cast<RE::TESObjectARMO*>(a_entry->type);
 					if (armor->objectEffect) {
@@ -283,32 +284,26 @@ namespace Helmet
 			return EventResult::kContinue;
 		}
 
-		RE::TESForm* form = RE::TESForm::LookupByID(a_event->formID);
-		if (!form) {
+		RE::TESObjectARMO* armor = RE::TESForm::LookupByID<RE::TESObjectARMO>(a_event->formID);
+		if (!armor) {
 			return EventResult::kContinue;
 		}
 
-		switch (form->formType) {
-		case RE::FormType::Armor:
-		{
-			RE::TESObjectARMO* armor = static_cast<RE::TESObjectARMO*>(form);
-			if (armor->HasPartOf(FirstPersonFlag::kHair)) {
-				if (armor->IsLightArmor() || armor->IsHeavyArmor()) {
-					if (a_event->isEquipping) {
-						DelayedHelmetLocator* dlgt = new DelayedHelmetLocator(form->formID);
-						g_task->AddTask(dlgt);
-					} else {
-						if (player->IsWeaponDrawn()) {
-							g_lastEquippedHelmet.Clear();
-						}
-					}
+		if (armor->HasPartOf(FirstPersonFlag::kHair)) {
+			if (armor->IsLightArmor() || armor->IsHeavyArmor()) {
+				if (a_event->isEquipping) {
+					DelayedHelmetLocator* dlgt = new DelayedHelmetLocator(armor->formID);
+					g_task->AddTask(dlgt);
 				} else {
-					g_lastEquippedHelmet.Clear();
+					if (player->IsWeaponDrawn()) {
+						g_lastEquippedHelmet.Clear();
+					}
 				}
+			} else {
+				g_lastEquippedHelmet.Clear();
 			}
 		}
-		break;
-		}
+
 		return EventResult::kContinue;
 	}
 
