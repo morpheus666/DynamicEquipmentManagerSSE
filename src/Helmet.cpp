@@ -21,6 +21,10 @@
 #include "RE/TESObjectARMO.h"  // TESObjectARMO
 
 
+#include "RE/BSTSmartPointer.h"  // TODO
+#include "RE/BSAnimationGraphManager.h"  // TODO
+
+
 namespace Helmet
 {
 	Helmet::Helmet() :
@@ -274,6 +278,10 @@ namespace Helmet
 	}
 
 
+	TESEquipEventHandler::~TESEquipEventHandler()
+	{}
+
+
 	RE::EventResult TESEquipEventHandler::ReceiveEvent(RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>* a_eventSource)
 	{
 		using RE::EventResult;
@@ -306,6 +314,10 @@ namespace Helmet
 
 		return EventResult::kContinue;
 	}
+
+
+	BSAnimationGraphEventHandler::~BSAnimationGraphEventHandler()
+	{}
 
 
 	RE::EventResult BSAnimationGraphEventHandler::ReceiveEvent(RE::BSAnimationGraphEvent* a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)

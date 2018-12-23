@@ -2,36 +2,56 @@
 
 #include "skse64/PluginAPI.h"  // SKSETaskInterface
 
+#include <utility>  // pair, make_pair
 #include <map>  // map
+#include <vector>  // vector
 
 #include "RE/PlayerCharacter.h"  // PlayerCharacter
 #include "RE/InventoryChanges.h"  // InventoryChanges
 #include "RE/TESContainer.h"  // TESContainer
 
 
+typedef UInt32 FormID;
+typedef SInt32 Count;
+
+
 class ContainerVisitor
 {
 public:
-	ContainerVisitor(InventoryChangesVisitor* a_visitor, std::map<UInt32, UInt32>* a_changes) :
-		_visitor(a_visitor),
-		_changes(a_changes)
+	ContainerVisitor(std::map<FormID, std::pair<RE::InventoryEntryData*, Count>>* a_invMap) :
+		_invMap(a_invMap)
 	{}
 
 
 	bool Accept(RE::TESContainer::Entry* a_entry)
 	{
-		if (a_entry->form && a_entry->count > 0) {
-			if (_changes->find(a_entry->form->formID) == _changes->end()) {
-				RE::InventoryEntryData entry(a_entry->form, a_entry->count);
-				return _visitor->Accept(&entry);
+		if (a_entry->form) {
+			auto& it = _invMap->find(a_entry->form->formID);
+			if (it != _invMap->end()) {
+				if (!a_entry->form->IsGold()) {
+					it->second.second += a_entry->count;
+				}
+			} else {
+				RE::InventoryEntryData* entryData = new RE::InventoryEntryData(a_entry->form, a_entry->count);
+				_heapList.push_back(entryData);
+				_invMap->emplace(a_entry->form->formID, std::make_pair(entryData, entryData->countDelta));
 			}
 		}
 		return true;
 	}
 
+
+	void Free()
+	{
+		for (auto& entry : _heapList) {
+			delete entry;
+			entry = 0;
+		}
+	}
+
 private:
-	InventoryChangesVisitor*	_visitor;
-	std::map<UInt32, UInt32>*	_changes;
+	std::map<FormID, std::pair<RE::InventoryEntryData*, Count>>*	_invMap;
+	std::vector<RE::InventoryEntryData*>							_heapList;
 };
 
 
@@ -39,31 +59,30 @@ void VisitPlayerInventoryChanges(InventoryChangesVisitor* a_visitor)
 {
 	RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
 	RE::InventoryChanges* changes = player->GetInventoryChanges();
-	std::map<UInt32, UInt32> changesMap;
-	bool done = false;
+	std::map<FormID, std::pair<RE::InventoryEntryData*, Count>> invMap;
 	if (changes) {
 		for (auto& entry : *changes->entryList) {
 			if (entry && entry->type) {
-				changesMap.emplace(entry->type->formID, 0);
-				if (entry->countDelta > -1) {
-					if (!a_visitor->Accept(entry)) {
-						done = true;
-						break;
-					}
-				}
+				invMap.emplace(entry->type->formID, std::make_pair(entry, entry->countDelta));
 			}
 		}
 	}
 
-	if (done) {
-		return;
-	}
-
 	RE::TESContainer* container = player->GetContainer();
+	ContainerVisitor visitor(&invMap);
 	if (container) {
-		ContainerVisitor visitor(a_visitor, &changesMap);
 		container->Visit(visitor);
 	}
+
+	for (auto& item : invMap) {
+		if (item.second.second > 0) {
+			if (!a_visitor->Accept(item.second.first)) {
+				break;
+			}
+		}
+	}
+
+	visitor.Free();
 }
 
 

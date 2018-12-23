@@ -123,6 +123,7 @@ namespace Helmet
 	class TESEquipEventHandler : public RE::BSTEventSink<RE::TESEquipEvent>
 	{
 	public:
+		virtual ~TESEquipEventHandler();
 		virtual RE::EventResult ReceiveEvent(RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>* a_eventSource) override;
 	};
 
@@ -130,6 +131,7 @@ namespace Helmet
 	class BSAnimationGraphEventHandler : public RE::BSTEventSink<RE::BSAnimationGraphEvent>
 	{
 	public:
+		virtual ~BSAnimationGraphEventHandler();
 		virtual RE::EventResult ReceiveEvent(RE::BSAnimationGraphEvent* a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource) override;
 	};
 
