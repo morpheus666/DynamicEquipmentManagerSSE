@@ -36,6 +36,9 @@
     <ClCompile Include="src\Shield.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\Animations.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\version.h">
@@ -63,6 +66,12 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="include\Shield.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\FNV1A.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Animations.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

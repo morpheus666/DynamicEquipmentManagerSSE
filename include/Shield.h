@@ -32,14 +32,14 @@ namespace Shield
 		class ShieldEquipVisitor : public InventoryChangesVisitor
 		{
 		public:
-			virtual bool Accept(RE::InventoryEntryData* a_entry) override;
+			virtual bool Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) override;
 		};
 
 
 		class ShieldUnEquipVisitor : public InventoryChangesVisitor
 		{
 		public:
-			virtual bool Accept(RE::InventoryEntryData* a_entry) override;
+			virtual bool Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) override;
 		};
 
 

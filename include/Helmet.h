@@ -64,14 +64,14 @@ namespace Helmet
 		class HelmetEquipVisitor : public InventoryChangesVisitor
 		{
 		public:
-			virtual bool Accept(RE::InventoryEntryData* a_entry) override;
+			virtual bool Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) override;
 		};
 
 
 		class HelmetUnEquipVisitor : public InventoryChangesVisitor
 		{
 		public:
-			virtual bool Accept(RE::InventoryEntryData* a_entry) override;
+			virtual bool Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) override;
 		};
 
 
@@ -99,7 +99,7 @@ namespace Helmet
 				_formID(a_formID)
 			{}
 
-			virtual bool Accept(RE::InventoryEntryData* a_entry) override;
+			virtual bool Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) override;
 
 		private:
 			UInt32 _formID;

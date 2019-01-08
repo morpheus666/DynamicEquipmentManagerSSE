@@ -40,17 +40,14 @@ namespace Ammo
 		{
 		public:
 			constexpr Visitor() :
-				_extraList(0),
 				_count(0)
 			{}
 
-			virtual bool					Accept(RE::InventoryEntryData* a_entry) override;
-			constexpr RE::BaseExtraList*	ExtraList() const { return _extraList; }
-			constexpr SInt32				Count() const { return _count; }
+			virtual bool		Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) override;
+			constexpr SInt32	Count() const { return _count; }
 
 		private:
-			RE::BaseExtraList*	_extraList;
-			SInt32				_count;
+			SInt32 _count;
 		};
 
 		virtual void Run() override;
@@ -66,7 +63,7 @@ namespace Ammo
 		class Visitor : public InventoryChangesVisitor
 		{
 		public:
-			virtual bool Accept(RE::InventoryEntryData* a_entry) override;
+			virtual bool Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) override;
 		};
 
 		virtual void Run() override;
@@ -82,7 +79,7 @@ namespace Ammo
 		class Visitor : public InventoryChangesVisitor
 		{
 		public:
-			virtual bool Accept(RE::InventoryEntryData* a_entry) override;
+			virtual bool Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) override;
 		};
 
 

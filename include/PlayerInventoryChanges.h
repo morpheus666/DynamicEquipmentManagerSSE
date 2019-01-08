@@ -8,7 +8,7 @@
 class InventoryChangesVisitor
 {
 public:
-	virtual bool Accept(RE::InventoryEntryData* a_entry) = 0;
+	virtual bool Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) = 0;
 };
 
 

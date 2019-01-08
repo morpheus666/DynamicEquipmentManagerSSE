@@ -5,6 +5,7 @@
 
 #include <type_traits>  // typeid
 
+#include "Animations.h"  // Anim, HashAnimation
 #include "Settings.h"  // Settings
 #include "version.h"  // MAKE_STR
 
@@ -169,7 +170,7 @@ namespace Helmet
 	}
 
 
-	bool HelmetTaskDelegate::HelmetEquipVisitor::Accept(RE::InventoryEntryData* a_entry)
+	bool HelmetTaskDelegate::HelmetEquipVisitor::Accept(RE::InventoryEntryData* a_entry, SInt32 a_count)
 	{
 		typedef RE::BGSBipedObjectForm::BipedBodyTemplate::FirstPersonFlag FirstPersonFlag;
 
@@ -203,14 +204,14 @@ namespace Helmet
 			RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 			RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
 			RE::BaseExtraList* xList = (a_entry->extraList && !a_entry->extraList->empty()) ? a_entry->extraList->front() : 0;
-			equipManager->EquipItem(player, armor, xList, 1, armor->equipSlot, true, false, false, 0);
+			equipManager->EquipItem(player, armor, xList, 1, armor->equipmentType, true, false, false, 0);
 			return false;
 		}
 		return true;
 	}
 
 
-	bool HelmetTaskDelegate::HelmetUnEquipVisitor::Accept(RE::InventoryEntryData* a_entry)
+	bool HelmetTaskDelegate::HelmetUnEquipVisitor::Accept(RE::InventoryEntryData* a_entry, SInt32 a_count)
 	{
 		typedef RE::BGSBipedObjectForm::BipedBodyTemplate::FirstPersonFlag FirstPersonFlag;
 
@@ -221,7 +222,7 @@ namespace Helmet
 					if (armor->HasPartOf(FirstPersonFlag::kHair) && (armor->IsLightArmor() || armor->IsHeavyArmor())) {
 						RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 						RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-						equipManager->UnEquipItem(player, armor, xList, 1, armor->equipSlot, true, false, true, false, 0);
+						equipManager->UnEquipItem(player, armor, xList, 1, armor->equipmentType, true, false, true, false, 0);
 						return false;
 					}
 				}
@@ -250,7 +251,7 @@ namespace Helmet
 	}
 
 
-	bool DelayedHelmetLocator::Visitor::Accept(RE::InventoryEntryData* a_entry)
+	bool DelayedHelmetLocator::Visitor::Accept(RE::InventoryEntryData* a_entry, SInt32 a_count)
 	{
 		if (a_entry->type->formID == _formID && a_entry->extraList) {
 			for (auto& xList : *a_entry->extraList) {
@@ -324,9 +325,6 @@ namespace Helmet
 	{
 		using RE::EventResult;
 
-		constexpr char* weaponDraw = "weaponDraw";
-		constexpr char* weaponSheathe = "weaponSheathe";
-
 		if (!a_event || !a_event->akTarget) {
 			return EventResult::kContinue;
 		}
@@ -336,12 +334,19 @@ namespace Helmet
 			return EventResult::kContinue;
 		}
 
-		if (a_event->animName == weaponDraw) {
+		switch (HashAnimation(a_event->animName)) {
+		case Anim::kWeaponDraw:
+		{
 			TaskDelegate* dlgt = new HelmetTaskDelegate(true);
 			g_task->AddTask(dlgt);
-		} else if (a_event->animName == weaponSheathe) {
+			break;
+		}
+		case Anim::kWeaponSheathe:
+		{
 			TaskDelegate* dlgt = new HelmetTaskDelegate(false);
 			g_task->AddTask(dlgt);
+			break;
+		}
 		}
 
 		return EventResult::kContinue;

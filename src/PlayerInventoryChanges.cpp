@@ -76,7 +76,7 @@ void VisitPlayerInventoryChanges(InventoryChangesVisitor* a_visitor)
 
 	for (auto& item : invMap) {
 		if (item.second.second > 0) {
-			if (!a_visitor->Accept(item.second.first)) {
+			if (!a_visitor->Accept(item.second.first, item.second.second)) {
 				break;
 			}
 		}

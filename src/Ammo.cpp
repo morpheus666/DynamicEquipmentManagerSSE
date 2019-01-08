@@ -60,7 +60,7 @@ namespace Ammo
 		if (g_equippedWeaponFormID != kInvalid) {
 			RE::TESObjectWEAP* weap = RE::TESForm::LookupByID<RE::TESObjectWEAP>(g_equippedWeaponFormID);
 
-			if (!weap->IsRanged() || weap->IsBound()) {
+			if ((!weap->IsBow() && !weap->IsCrossbow()) || weap->IsBound()) {
 				g_equippedWeaponFormID = kInvalid;
 				return;
 			}
@@ -72,7 +72,7 @@ namespace Ammo
 			if (ammo) {
 				RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 				RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-				equipManager->EquipItem(player, ammo, visitor.ExtraList(), visitor.Count(), 0, true, false, false, 0);
+				equipManager->EquipItem(player, ammo, 0, visitor.Count(), 0, true, false, false, 0);
 
 				RE::MenuManager* mm = RE::MenuManager::GetSingleton();
 				RE::UIStringHolder* uiStrHolder = RE::UIStringHolder::GetSingleton();
@@ -95,12 +95,11 @@ namespace Ammo
 	}
 
 
-	bool DelayedWeaponTaskDelegate::Visitor::Accept(RE::InventoryEntryData* a_entry)
+	bool DelayedWeaponTaskDelegate::Visitor::Accept(RE::InventoryEntryData* a_entry, SInt32 a_count)
 	{
 		if (a_entry->type->IsAmmo()) {
 			if (a_entry->type->formID == g_lastEquippedAmmo.GetLoadedFormID()) {
-				_extraList = a_entry->extraList ? a_entry->extraList->front() : 0;
-				_count = a_entry->countDelta;
+				_count = a_count;
 				return false;
 			}
 		}
@@ -134,14 +133,14 @@ namespace Ammo
 	}
 
 
-	bool DelayedAmmoTaskDelegate::Visitor::Accept(RE::InventoryEntryData* a_entry)
+	bool DelayedAmmoTaskDelegate::Visitor::Accept(RE::InventoryEntryData* a_entry, SInt32 a_count)
 	{
 		if (a_entry->type->formID == g_equippedAmmoFormID && a_entry->extraList) {
 			for (auto& xList : *a_entry->extraList) {
 				if (xList->HasType(RE::ExtraDataType::kWorn) || xList->HasType(RE::ExtraDataType::kWornLeft)) {
 					RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 					RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-					equipManager->UnEquipItem(player, a_entry->type, xList, a_entry->countDelta, 0, true, false, true, false, 0);
+					equipManager->UnEquipItem(player, a_entry->type, xList, a_count, 0, true, false, true, false, 0);
 					return false;
 				}
 			}
@@ -191,12 +190,12 @@ namespace Ammo
 	}
 
 
-	bool TESEquipEventHandler::Visitor::Accept(RE::InventoryEntryData* a_entry)
+	bool TESEquipEventHandler::Visitor::Accept(RE::InventoryEntryData* a_entry, SInt32 a_count)
 	{
 		if (a_entry->type->formID == g_lastEquippedAmmo.GetLoadedFormID() && a_entry->extraList) {
 			RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 			RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-			equipManager->UnEquipItem(player, a_entry->type, a_entry->extraList->front(), a_entry->countDelta, 0, true, false, true, false, 0);
+			equipManager->UnEquipItem(player, a_entry->type, a_entry->extraList->front(), a_count, 0, true, false, true, false, 0);
 			return false;
 		}
 		return true;

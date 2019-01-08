@@ -156,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Ammo.cpp" />
+    <ClCompile Include="src\Animations.cpp" />
     <ClCompile Include="src\Forms.cpp" />
     <ClCompile Include="src\Helmet.cpp" />
     <ClCompile Include="src\ISerializableForm.cpp" />
@@ -166,7 +167,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Ammo.h" />
+    <ClInclude Include="include\Animations.h" />
     <ClInclude Include="include\Exceptions.h" />
+    <ClInclude Include="include\FNV1A.h" />
     <ClInclude Include="include\Forms.h" />
     <ClInclude Include="include\Helmet.h" />
     <ClInclude Include="include\ISerializableForm.h" />

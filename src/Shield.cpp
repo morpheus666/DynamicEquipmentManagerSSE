@@ -5,6 +5,7 @@
 
 #include <type_traits>  // typeid
 
+#include "Animations.h"  // Anim, HashAnimation
 #include "Settings.h"  // Settings
 #include "version.h"  // MAKE_STR
 
@@ -72,7 +73,7 @@ namespace Shield
 	}
 
 
-	bool ShieldTaskDelegate::ShieldEquipVisitor::Accept(RE::InventoryEntryData* a_entry)
+	bool ShieldTaskDelegate::ShieldEquipVisitor::Accept(RE::InventoryEntryData* a_entry, SInt32 a_count)
 	{
 		typedef RE::BGSBipedObjectForm::BipedBodyTemplate::FirstPersonFlag FirstPersonFlag;
 
@@ -82,14 +83,14 @@ namespace Shield
 			RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 			RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
 			RE::BaseExtraList* xList = (a_entry->extraList && !a_entry->extraList->empty()) ? a_entry->extraList->front() : 0;
-			equipManager->EquipItem(player, shield, xList, 1, shield->equipSlot, true, false, false, 0);
+			equipManager->EquipItem(player, shield, xList, 1, shield->equipmentType, true, false, false, 0);
 			return false;
 		}
 		return true;
 	}
 
 
-	bool ShieldTaskDelegate::ShieldUnEquipVisitor::Accept(RE::InventoryEntryData* a_entry)
+	bool ShieldTaskDelegate::ShieldUnEquipVisitor::Accept(RE::InventoryEntryData* a_entry, SInt32 a_count)
 	{
 		typedef RE::BGSBipedObjectForm::BipedBodyTemplate::FirstPersonFlag FirstPersonFlag;
 
@@ -101,7 +102,7 @@ namespace Shield
 						if (armor->HasPartOf(FirstPersonFlag::kShield)) {
 							RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 							RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-							equipManager->UnEquipItem(player, armor, xList, 1, armor->equipSlot, true, false, true, false, 0);
+							equipManager->UnEquipItem(player, armor, xList, 1, armor->equipmentType, true, false, true, false, 0);
 							return false;
 						}
 					}
@@ -145,10 +146,6 @@ namespace Shield
 	{
 		using RE::EventResult;
 
-		constexpr char* weaponDraw = "weaponDraw";
-		constexpr char* weaponSheathe = "weaponSheathe";
-		constexpr char* tailCombatIdle = "tailCombatIdle";
-
 		if (!a_event || !a_event->akTarget) {
 			return EventResult::kContinue;
 		}
@@ -158,14 +155,22 @@ namespace Shield
 			return EventResult::kContinue;
 		}
 
-		if (a_event->animName == weaponDraw) {
+		switch (HashAnimation(a_event->animName)) {
+		case Anim::kWeaponDraw:
+		{
 			TaskDelegate* dlgt = new ShieldTaskDelegate(true);
 			g_task->AddTask(dlgt);
-		} else if (a_event->animName == weaponSheathe) {
+			break;
+		}
+		case Anim::kWeaponSheathe:
+		{
 			TaskDelegate* dlgt = new ShieldTaskDelegate(false);
 			g_task->AddTask(dlgt);
-		} else if (a_event->animName == tailCombatIdle) {
+			break;
+		}
+		case Anim::kTailCombatIdle:
 			g_skipAnim = false;
+			break;
 		}
 
 		return EventResult::kContinue;
