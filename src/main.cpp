@@ -207,23 +207,23 @@ void MessageHandler(SKSEMessagingInterface::Message* a_msg)
 {
 	switch (a_msg->type) {
 	case SKSEMessagingInterface::kMessage_DataLoaded:
-	{
-		RE::ScriptEventSourceHolder* sourceHolder = RE::ScriptEventSourceHolder::GetSingleton();
-		sourceHolder->objectLoadedEventSource.AddEventSink(&g_objectLoadedEventHandler);
-		if (Settings::manageAmmo) {
-			sourceHolder->equipEventSource.AddEventSink(&Ammo::g_equipEventSink);
-			_MESSAGE("[MESSAGE] Registered ammo equip event handler");
-		}
-		if (Settings::manageHelmet) {
-			sourceHolder->equipEventSource.AddEventSink(&Helmet::g_equipEventSink);
-			_MESSAGE("[MESSAGE] Registered helmet equip event handler");
-		}
-		if (Settings::manageShield) {
-			sourceHolder->equipEventSource.AddEventSink(&Shield::g_equipEventSink);
-			_MESSAGE("[MESSAGE] Registered shield equip event handler");
+		{
+			RE::ScriptEventSourceHolder* sourceHolder = RE::ScriptEventSourceHolder::GetSingleton();
+			sourceHolder->objectLoadedEventSource.AddEventSink(&g_objectLoadedEventHandler);
+			if (Settings::manageAmmo) {
+				sourceHolder->equipEventSource.AddEventSink(&Ammo::g_equipEventSink);
+				_MESSAGE("[MESSAGE] Registered ammo equip event handler");
+			}
+			if (Settings::manageHelmet) {
+				sourceHolder->equipEventSource.AddEventSink(&Helmet::g_equipEventSink);
+				_MESSAGE("[MESSAGE] Registered helmet equip event handler");
+			}
+			if (Settings::manageShield) {
+				sourceHolder->equipEventSource.AddEventSink(&Shield::g_equipEventSink);
+				_MESSAGE("[MESSAGE] Registered shield equip event handler");
+			}
 		}
 		break;
-	}
 	}
 }
 

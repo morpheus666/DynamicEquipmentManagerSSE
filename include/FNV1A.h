@@ -9,14 +9,14 @@
 // post: https://notes.underscorediscovery.com/constexpr-fnv1a/
 
 
-inline const uint32_t hash_32_fnv1a(const void* key, const uint32_t len)
+inline const std::uint32_t hash_32_fnv1a(const void* a_key, const std::uint32_t a_len)
 {
-	const char* data = (char*)key;
-	uint32_t hash = 0x811c9dc5;
-	uint32_t prime = 0x1000193;
+	const char* data = (char*)a_key;
+	std::uint32_t hash = 0x811c9dc5;
+	std::uint32_t prime = 0x1000193;
 
-	for (int i = 0; i < len; ++i) {
-		uint8_t value = data[i];
+	for (int i = 0; i < a_len; ++i) {
+		std::uint8_t value = data[i];
 		hash = hash ^ value;
 		hash *= prime;
 	}
@@ -25,14 +25,14 @@ inline const uint32_t hash_32_fnv1a(const void* key, const uint32_t len)
 } //hash_32_fnv1a
 
 
-inline const uint64_t hash_64_fnv1a(const void* key, const uint64_t len)
+inline const std::uint64_t hash_64_fnv1a(const void* a_key, const std::uint64_t a_len)
 {
-	const char* data = (char*)key;
-	uint64_t hash = 0xcbf29ce484222325;
-	uint64_t prime = 0x100000001b3;
+	const char* data = (char*)a_key;
+	std::uint64_t hash = 0xcbf29ce484222325;
+	std::uint64_t prime = 0x100000001b3;
 
-	for (int i = 0; i < len; ++i) {
-		uint8_t value = data[i];
+	for (int i = 0; i < a_len; ++i) {
+		std::uint8_t value = data[i];
 		hash = hash ^ value;
 		hash *= prime;
 	}
@@ -48,19 +48,19 @@ inline const uint64_t hash_64_fnv1a(const void* key, const uint64_t len)
   // post: https://notes.underscorediscovery.com/constexpr-fnv1a/
 
 
-constexpr uint32_t val_32_const = 0x811c9dc5;
-constexpr uint32_t prime_32_const = 0x1000193;
-constexpr uint64_t val_64_const = 0xcbf29ce484222325;
-constexpr uint64_t prime_64_const = 0x100000001b3;
+constexpr std::uint32_t val_32_const = 0x811c9dc5;
+constexpr std::uint32_t prime_32_const = 0x1000193;
+constexpr std::uint64_t val_64_const = 0xcbf29ce484222325;
+constexpr std::uint64_t prime_64_const = 0x100000001b3;
 
 
-inline constexpr uint32_t hash_32_fnv1a_const(const char* const str, const uint32_t value = val_32_const) noexcept
+inline constexpr std::uint32_t hash_32_fnv1a_const(const char* const a_str, const std::uint32_t a_value = val_32_const) noexcept
 {
-	return (str[0] == '\0') ? value : hash_32_fnv1a_const(&str[1], (value ^ uint32_t(str[0])) * prime_32_const);
+	return (a_str[0] == '\0') ? a_value : hash_32_fnv1a_const(&a_str[1], (a_value ^ std::uint32_t(a_str[0])) * prime_32_const);
 }
 
 
-inline constexpr uint64_t hash_64_fnv1a_const(const char* const str, const uint64_t value = val_64_const) noexcept
+inline constexpr std::uint64_t hash_64_fnv1a_const(const char* const a_str, const std::uint64_t a_value = val_64_const) noexcept
 {
-	return (str[0] == '\0') ? value : hash_64_fnv1a_const(&str[1], (value ^ uint64_t(str[0])) * prime_64_const);
+	return (a_str[0] == '\0') ? a_value : hash_64_fnv1a_const(&a_str[1], (a_value ^ std::uint64_t(a_str[0])) * prime_64_const);
 }

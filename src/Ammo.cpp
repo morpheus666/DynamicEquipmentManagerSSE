@@ -165,26 +165,26 @@ namespace Ammo
 
 		switch (form->formType) {
 		case RE::FormType::Weapon:
-		{
-			if (a_event->isEquipping) {
-				g_equippedWeaponFormID = form->formID;
-				DelayedWeaponTaskDelegate* dlgt = new DelayedWeaponTaskDelegate();
-				g_task->AddTask(dlgt);
-			} else {
-				Visitor visitor;
-				VisitPlayerInventoryChanges(&visitor);
+			{
+				if (a_event->isEquipping) {
+					g_equippedWeaponFormID = form->formID;
+					DelayedWeaponTaskDelegate* dlgt = new DelayedWeaponTaskDelegate();
+					g_task->AddTask(dlgt);
+				} else {
+					Visitor visitor;
+					VisitPlayerInventoryChanges(&visitor);
+				}
 			}
 			break;
-		}
 		case RE::FormType::Ammo:
-		{
-			if (a_event->isEquipping) {
-				g_equippedAmmoFormID = form->formID;
-				DelayedAmmoTaskDelegate* dlgt = new DelayedAmmoTaskDelegate();
-				g_task->AddTask(dlgt);
+			{
+				if (a_event->isEquipping) {
+					g_equippedAmmoFormID = form->formID;
+					DelayedAmmoTaskDelegate* dlgt = new DelayedAmmoTaskDelegate();
+					g_task->AddTask(dlgt);
+				}
 			}
 			break;
-		}
 		}
 		return EventResult::kContinue;
 	}

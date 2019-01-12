@@ -157,17 +157,17 @@ namespace Shield
 
 		switch (HashAnimation(a_event->animName)) {
 		case Anim::kWeaponDraw:
-		{
-			TaskDelegate* dlgt = new ShieldTaskDelegate(true);
-			g_task->AddTask(dlgt);
+			{
+				TaskDelegate* dlgt = new ShieldTaskDelegate(true);
+				g_task->AddTask(dlgt);
+			}
 			break;
-		}
 		case Anim::kWeaponSheathe:
-		{
-			TaskDelegate* dlgt = new ShieldTaskDelegate(false);
-			g_task->AddTask(dlgt);
+			{
+				TaskDelegate* dlgt = new ShieldTaskDelegate(false);
+				g_task->AddTask(dlgt);
+			}
 			break;
-		}
 		case Anim::kTailCombatIdle:
 			g_skipAnim = false;
 			break;

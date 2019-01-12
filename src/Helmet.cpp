@@ -336,17 +336,17 @@ namespace Helmet
 
 		switch (HashAnimation(a_event->animName)) {
 		case Anim::kWeaponDraw:
-		{
-			TaskDelegate* dlgt = new HelmetTaskDelegate(true);
-			g_task->AddTask(dlgt);
+			{
+				TaskDelegate* dlgt = new HelmetTaskDelegate(true);
+				g_task->AddTask(dlgt);
+			}
 			break;
-		}
 		case Anim::kWeaponSheathe:
-		{
-			TaskDelegate* dlgt = new HelmetTaskDelegate(false);
-			g_task->AddTask(dlgt);
+			{
+				TaskDelegate* dlgt = new HelmetTaskDelegate(false);
+				g_task->AddTask(dlgt);
+			}
 			break;
-		}
 		}
 
 		return EventResult::kContinue;

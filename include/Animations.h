@@ -12,9 +12,9 @@ enum class Anim : std::uint64_t
 {
 #pragma warning (push)
 #pragma warning (disable : 4307)  // Warning C4307 '*': integral constant overflow
-	kWeaponDraw = hash_64_fnv1a_const("weaponDraw"),
-	kWeaponSheathe = hash_64_fnv1a_const("weaponSheathe"),
-	kTailCombatIdle = hash_64_fnv1a_const("tailCombatIdle"),
+	kWeaponDraw = hash_64_fnv1a_const("weapondraw"),
+	kWeaponSheathe = hash_64_fnv1a_const("weaponsheathe"),
+	kTailCombatIdle = hash_64_fnv1a_const("tailcombatidle"),
 #pragma warning (pop)
 };
 
