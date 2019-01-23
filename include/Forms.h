@@ -1,11 +1,10 @@
 #pragma once
 
-#include "skse64/GameData.h"  // ModInfo
-
 #include <string>  // string
 
 #include "RE/BGSKeyword.h"  // BGSKeyword
 #include "RE/TESDataHandler.h"  // TESDataHandler
+#include "RE/TESFile.h"  // TESFile
 #include "RE/TESForm.h"  // LookupByID
 
 
@@ -40,7 +39,7 @@ public:
 
 		if (_loadedFormID == kInvalid) {
 			RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
-			const ModInfo* modInfo = dataHandler->LookupLoadedModByName(_pluginName.c_str());
+			const RE::TESFile* modInfo = dataHandler->LookupLoadedModByName(_pluginName.c_str());
 			if (modInfo) {
 				_loadedFormID = _rawFormID + (modInfo->modIndex << (3 * 8));
 			} else {

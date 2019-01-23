@@ -1,12 +1,11 @@
 #include "ISerializableForm.h"
 
-#include "skse64/GameData.h"  // ModInfo
-
 #include <exception>  // exception
 
 #include "version.h"  // MAKE_STR
 
 #include "RE/TESDataHandler.h"  // TESDataHandler
+#include "RE/TESFile.h"  // TESFile
 
 
 ISerializableForm::ISerializableForm() :
@@ -90,7 +89,7 @@ void ISerializableForm::SetForm(UInt32 a_formID)
 	RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
 	UInt32 rawFormID = a_formID;
 	UInt8 idx = a_formID >> (3 * 8);
-	const ModInfo* modInfo = 0;
+	const RE::TESFile* modInfo = 0;
 	bool isLightMod = idx == 0xFE;
 	bool isGeneratedID = idx == 0xFF;
 	if (isLightMod) {
@@ -126,7 +125,7 @@ UInt32 ISerializableForm::GetLoadedFormID()
 
 	if (_loadedFormID == kInvalid) {
 		RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
-		const ModInfo* modInfo = 0;
+		const RE::TESFile* modInfo = 0;
 		if (_isLightMod) {
 			modInfo = dataHandler->LookupLoadedLightModByName(_pluginName.c_str());
 			if (!modInfo) {

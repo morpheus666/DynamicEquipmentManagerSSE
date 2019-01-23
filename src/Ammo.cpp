@@ -89,9 +89,7 @@ namespace Ammo
 
 	void DelayedWeaponTaskDelegate::Dispose()
 	{
-		if (this) {
-			delete this;
-		}
+		delete this;
 	}
 
 
@@ -101,6 +99,30 @@ namespace Ammo
 			if (a_entry->type->formID == g_lastEquippedAmmo.GetLoadedFormID()) {
 				_count = a_count;
 				return false;
+			}
+		}
+		return true;
+	}
+
+
+	bool DelayedAmmoTaskDelegate::Visitor::Accept(RE::InventoryEntryData* a_entry, SInt32 a_count)
+	{
+		if (a_entry->type->formID == g_equippedAmmoFormID && a_entry->extraList) {
+			for (auto& xList : *a_entry->extraList) {
+				if (xList->HasType(RE::ExtraDataType::kWorn) || xList->HasType(RE::ExtraDataType::kWornLeft)) {
+					RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
+					RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+					equipManager->UnEquipItem(player, a_entry->type, xList, a_count, 0, true, false, true, false, 0);
+
+					RE::MenuManager* mm = RE::MenuManager::GetSingleton();
+					RE::UIStringHolder* uiStrHolder = RE::UIStringHolder::GetSingleton();
+					RE::InventoryMenu* invMenu = mm->GetMenu<RE::InventoryMenu>(uiStrHolder->inventoryMenu);
+					if (invMenu && invMenu->inventoryData) {
+						invMenu->inventoryData->Update(player);
+					}
+
+					return false;
+				}
 			}
 		}
 		return true;
@@ -127,25 +149,7 @@ namespace Ammo
 
 	void DelayedAmmoTaskDelegate::Dispose()
 	{
-		if (this) {
-			delete this;
-		}
-	}
-
-
-	bool DelayedAmmoTaskDelegate::Visitor::Accept(RE::InventoryEntryData* a_entry, SInt32 a_count)
-	{
-		if (a_entry->type->formID == g_equippedAmmoFormID && a_entry->extraList) {
-			for (auto& xList : *a_entry->extraList) {
-				if (xList->HasType(RE::ExtraDataType::kWorn) || xList->HasType(RE::ExtraDataType::kWornLeft)) {
-					RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
-					RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-					equipManager->UnEquipItem(player, a_entry->type, xList, a_count, 0, true, false, true, false, 0);
-					return false;
-				}
-			}
-		}
-		return true;
+		delete this;
 	}
 
 
