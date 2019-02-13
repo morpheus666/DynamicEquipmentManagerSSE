@@ -67,7 +67,7 @@ namespace Helmet
 				{ ClassName(), helmetSave },
 				{ _enchantment.ClassName(), enchSave }
 			};
-		} catch (std::exception & e) {
+		} catch (std::exception& e) {
 			_ERROR("[ERROR] %s\n", e.what());
 			return false;
 		}
@@ -88,7 +88,7 @@ namespace Helmet
 			if (it == a_load.end() || !_enchantment.Load(*it)) {
 				return false;
 			}
-		} catch (std::exception & e) {
+		} catch (std::exception& e) {
 			_ERROR("[ERROR] %s\n", e.what());
 			return false;
 		}

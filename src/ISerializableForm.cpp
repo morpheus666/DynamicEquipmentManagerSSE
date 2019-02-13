@@ -40,7 +40,7 @@ bool ISerializableForm::Save(json& a_save)
 			{ MAKE_STR(_isLightMod), _isLightMod },
 			{ MAKE_STR(_isGeneratedID), _isGeneratedID }
 		};
-	} catch (std::exception & e) {
+	} catch (std::exception& e) {
 		_ERROR("[ERROR] %s", e.what());
 		return false;
 	}
@@ -69,7 +69,7 @@ bool ISerializableForm::Load(json& a_load)
 		if (!loadJsonObj(a_load, MAKE_STR(_isGeneratedID), _isGeneratedID)) {
 			return false;
 		}
-	} catch (std::exception & e) {
+	} catch (std::exception& e) {
 		_ERROR("[ERROR] %s", e.what());
 		return false;
 	}
@@ -86,8 +86,7 @@ void ISerializableForm::SetForm(UInt32 a_formID)
 
 	RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
 	UInt32 rawFormID = a_formID;
-	UInt8 idx = a_formID >> (3 * 8);
-	idx &= 0xFF;
+	UInt8 idx = (a_formID >> (3 * 8)) & 0xFF;
 	const RE::TESFile* modInfo = 0;
 	bool isLightMod = idx == 0xFE;
 	bool isGeneratedID = idx == 0xFF;

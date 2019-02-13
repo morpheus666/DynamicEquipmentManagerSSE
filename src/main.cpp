@@ -66,7 +66,7 @@ void SaveCallback(SKSESerializationInterface* a_intfc)
 		_DMESSAGE("\nSERIALIZATION SAVE DUMP\n%s\n", buf.c_str());
 #endif
 		g_serialization->WriteRecord('DNAM', SERIALIZATION_VERSION, buf.c_str(), buf.length() + 1);
-	} catch (std::exception & e) {
+	} catch (std::exception& e) {
 		_ERROR("[ERROR] %s", e.what());
 	}
 
@@ -74,7 +74,7 @@ void SaveCallback(SKSESerializationInterface* a_intfc)
 }
 
 
-void LoadCallback(SKSESerializationInterface * a_intfc)
+void LoadCallback(SKSESerializationInterface* a_intfc)
 {
 	using nlohmann::json;
 	using Ammo::g_lastEquippedAmmo;
@@ -127,7 +127,7 @@ void LoadCallback(SKSESerializationInterface * a_intfc)
 			g_lastEquippedShield.Clear();
 			throw bad_shield_load();
 		}
-	} catch (std::exception & e) {
+	} catch (std::exception& e) {
 		_ERROR("[ERROR] %s\n", e.what());
 	}
 
@@ -198,7 +198,7 @@ protected:
 TESObjectLoadedEventHandler* TESObjectLoadedEventHandler::_singleton = 0;
 
 
-void MessageHandler(SKSEMessagingInterface::Message * a_msg)
+void MessageHandler(SKSEMessagingInterface::Message* a_msg)
 {
 	switch (a_msg->type) {
 	case SKSEMessagingInterface::kMessage_DataLoaded:
