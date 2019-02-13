@@ -67,7 +67,7 @@ namespace Helmet
 				{ ClassName(), helmetSave },
 				{ _enchantment.ClassName(), enchSave }
 			};
-		} catch (std::exception& e) {
+		} catch (std::exception & e) {
 			_ERROR("[ERROR] %s\n", e.what());
 			return false;
 		}
@@ -88,7 +88,7 @@ namespace Helmet
 			if (it == a_load.end() || !_enchantment.Load(*it)) {
 				return false;
 			}
-		} catch (std::exception& e) {
+		} catch (std::exception & e) {
 			_ERROR("[ERROR] %s\n", e.what());
 			return false;
 		}
@@ -279,6 +279,22 @@ namespace Helmet
 	}
 
 
+	void AnimGraphSinkDelegate::Run()
+	{
+		SinkAnimationGraphEventHandler(BSAnimationGraphEventHandler::GetSingleton());
+	}
+
+
+	void AnimGraphSinkDelegate::Dispose()
+	{
+		delete this;
+	}
+
+
+	TESEquipEventHandler::TESEquipEventHandler()
+	{}
+
+
 	TESEquipEventHandler::~TESEquipEventHandler()
 	{}
 
@@ -317,6 +333,29 @@ namespace Helmet
 	}
 
 
+	TESEquipEventHandler* TESEquipEventHandler::GetSingleton()
+	{
+		if (!_singleton) {
+			_singleton = new TESEquipEventHandler();
+		}
+		return _singleton;
+	}
+
+
+	void TESEquipEventHandler::Free()
+	{
+		delete _singleton;
+		_singleton = 0;
+	}
+
+
+	TESEquipEventHandler* TESEquipEventHandler::_singleton = 0;
+
+
+	BSAnimationGraphEventHandler::BSAnimationGraphEventHandler()
+	{}
+
+
 	BSAnimationGraphEventHandler::~BSAnimationGraphEventHandler()
 	{}
 
@@ -347,13 +386,36 @@ namespace Helmet
 				g_task->AddTask(dlgt);
 			}
 			break;
+		case Anim::kGraphDeleting:
+			{
+				TaskDelegate* dlgt = new AnimGraphSinkDelegate();
+				g_task->AddTask(dlgt);
+			}
+			break;
 		}
 
 		return EventResult::kContinue;
 	}
 
 
+	BSAnimationGraphEventHandler* BSAnimationGraphEventHandler::GetSingleton()
+	{
+		if (!_singleton) {
+			_singleton = new BSAnimationGraphEventHandler();
+		}
+		return _singleton;
+	}
+
+
+	void BSAnimationGraphEventHandler::Free()
+	{
+		delete _singleton;
+		_singleton = 0;
+	}
+
+
+	BSAnimationGraphEventHandler* BSAnimationGraphEventHandler::_singleton = 0;
+
+
 	Helmet g_lastEquippedHelmet;
-	TESEquipEventHandler g_equipEventSink;
-	BSAnimationGraphEventHandler g_animationGraphEventSink;
 }

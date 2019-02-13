@@ -9,7 +9,7 @@
 #include "Exceptions.h"  // bad_record_info, bad_record_version, bad_record_read, bad_ammo_save, bad_helmet_save, bad_shield_save, bad_ammo_load, bad_helmet_load, bad_shield_load
 #include "Helmet.h"  // g_lastEquippedHelmet, g_equipEventSink
 #include "json.hpp"  // json
-#include "PlayerInventoryChanges.h"  // g_task
+#include "PlayerUtil.h"  // g_task, SinkAnimationGraphEventHandler
 #include "Settings.h"  // Settings
 #include "Shield.h"  // g_lastEquippedShield
 #include "version.h"  // DNEM_VERSION_VERSTRING
@@ -66,7 +66,7 @@ void SaveCallback(SKSESerializationInterface* a_intfc)
 		_DMESSAGE("\nSERIALIZATION SAVE DUMP\n%s\n", buf.c_str());
 #endif
 		g_serialization->WriteRecord('DNAM', SERIALIZATION_VERSION, buf.c_str(), buf.length() + 1);
-	} catch (std::exception& e) {
+	} catch (std::exception & e) {
 		_ERROR("[ERROR] %s", e.what());
 	}
 
@@ -74,7 +74,7 @@ void SaveCallback(SKSESerializationInterface* a_intfc)
 }
 
 
-void LoadCallback(SKSESerializationInterface* a_intfc)
+void LoadCallback(SKSESerializationInterface * a_intfc)
 {
 	using nlohmann::json;
 	using Ammo::g_lastEquippedAmmo;
@@ -127,7 +127,7 @@ void LoadCallback(SKSESerializationInterface* a_intfc)
 			g_lastEquippedShield.Clear();
 			throw bad_shield_load();
 		}
-	} catch (std::exception& e) {
+	} catch (std::exception & e) {
 		_ERROR("[ERROR] %s\n", e.what());
 	}
 
@@ -138,41 +138,17 @@ void LoadCallback(SKSESerializationInterface* a_intfc)
 }
 
 
-bool SinkAnimationGraphEventHandler(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink)
-{
-	RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-	RE::BSAnimationGraphManagerPtr graphManager;
-	player->GetAnimationGraphManager(graphManager);
-	if (graphManager) {
-		bool sinked = false;
-		for (auto& animationGraph : graphManager->animationGraphs) {
-			if (sinked) {
-				break;
-			}
-			RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource = animationGraph->GetBSAnimationGraphEventSource();
-			for (auto& sink : eventSource->eventSinks) {
-				if (sink == a_sink) {
-					sinked = true;
-					break;
-				}
-			}
-		}
-		if (!sinked) {
-			graphManager->animationGraphs.front()->GetBSAnimationGraphEventSource()->AddEventSink(a_sink);
-			return true;
-		}
-	}
-	return false;
-}
-
-
 class TESObjectLoadedEventHandler : public RE::BSTEventSink<RE::TESObjectLoadedEvent>
 {
-public:
-	virtual ~TESObjectLoadedEventHandler()
+protected:
+	TESObjectLoadedEventHandler()
 	{}
 
 
+	virtual ~TESObjectLoadedEventHandler()
+	{}
+
+public:
 	virtual RE::EventResult ReceiveEvent(RE::TESObjectLoadedEvent* a_event, RE::BSTEventSource<RE::TESObjectLoadedEvent>* a_eventSource) override
 	{
 		using RE::EventResult;
@@ -184,12 +160,12 @@ public:
 		RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
 		if (a_event->formID == player->formID) {
 			if (Settings::manageHelmet) {
-				if (SinkAnimationGraphEventHandler(&Helmet::g_animationGraphEventSink)) {
+				if (SinkAnimationGraphEventHandler(Helmet::BSAnimationGraphEventHandler::GetSingleton())) {
 					_MESSAGE("[MESSAGE] Registered helmet player animation event handler");
 				}
 			}
 			if (Settings::manageShield) {
-				if (SinkAnimationGraphEventHandler(&Shield::g_animationGraphEventSink)) {
+				if (SinkAnimationGraphEventHandler(Shield::BSAnimationGraphEventHandler::GetSingleton())) {
 					_MESSAGE("[MESSAGE] Registered shield player animation event handler");
 				}
 			}
@@ -197,29 +173,48 @@ public:
 
 		return EventResult::kContinue;
 	}
+
+
+	static TESObjectLoadedEventHandler* GetSingleton()
+	{
+		if (!_singleton) {
+			_singleton = new TESObjectLoadedEventHandler();
+		}
+		return _singleton;
+	}
+
+
+	static void Free()
+	{
+		delete _singleton;
+		_singleton = 0;
+	}
+
+protected:
+	static TESObjectLoadedEventHandler* _singleton;
 };
 
 
-static TESObjectLoadedEventHandler g_objectLoadedEventHandler;
+TESObjectLoadedEventHandler* TESObjectLoadedEventHandler::_singleton = 0;
 
 
-void MessageHandler(SKSEMessagingInterface::Message* a_msg)
+void MessageHandler(SKSEMessagingInterface::Message * a_msg)
 {
 	switch (a_msg->type) {
 	case SKSEMessagingInterface::kMessage_DataLoaded:
 		{
 			RE::ScriptEventSourceHolder* sourceHolder = RE::ScriptEventSourceHolder::GetSingleton();
-			sourceHolder->objectLoadedEventSource.AddEventSink(&g_objectLoadedEventHandler);
+			sourceHolder->objectLoadedEventSource.AddEventSink(TESObjectLoadedEventHandler::GetSingleton());
 			if (Settings::manageAmmo) {
-				sourceHolder->equipEventSource.AddEventSink(&Ammo::g_equipEventSink);
+				sourceHolder->equipEventSource.AddEventSink(Ammo::TESEquipEventHandler::GetSingleton());
 				_MESSAGE("[MESSAGE] Registered ammo equip event handler");
 			}
 			if (Settings::manageHelmet) {
-				sourceHolder->equipEventSource.AddEventSink(&Helmet::g_equipEventSink);
+				sourceHolder->equipEventSource.AddEventSink(Helmet::TESEquipEventHandler::GetSingleton());
 				_MESSAGE("[MESSAGE] Registered helmet equip event handler");
 			}
 			if (Settings::manageShield) {
-				sourceHolder->equipEventSource.AddEventSink(&Shield::g_equipEventSink);
+				sourceHolder->equipEventSource.AddEventSink(Shield::TESEquipEventHandler::GetSingleton());
 				_MESSAGE("[MESSAGE] Registered shield equip event handler");
 			}
 		}

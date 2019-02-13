@@ -6,7 +6,7 @@
 
 #include "ISerializableForm.h"  // ISerializableForm, kInvalid
 #include "json.hpp"  // json
-#include "PlayerInventoryChanges.h"  // InventoryChangesVisitor
+#include "PlayerUtil.h"  // InventoryChangesVisitor
 
 #include "RE/BSTEvent.h"  // BSTEventSink, EventResult, BSTEventSource
 #include "RE/FormTypes.h"  // TESAmmo
@@ -75,6 +75,10 @@ namespace Ammo
 
 	class TESEquipEventHandler : public RE::BSTEventSink<RE::TESEquipEvent>
 	{
+	protected:
+		TESEquipEventHandler();
+		virtual ~TESEquipEventHandler();
+
 	public:
 		class Visitor : public InventoryChangesVisitor
 		{
@@ -84,6 +88,12 @@ namespace Ammo
 
 
 		virtual RE::EventResult ReceiveEvent(RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>* a_eventSource) override;
+
+		static TESEquipEventHandler* GetSingleton();
+		static void Free();
+
+	protected:
+		static TESEquipEventHandler* _singleton;
 	};
 
 
@@ -91,5 +101,4 @@ namespace Ammo
 	static UInt32 g_equippedWeaponFormID = kInvalid;
 
 	extern Ammo g_lastEquippedAmmo;
-	extern TESEquipEventHandler g_equipEventSink;
 }

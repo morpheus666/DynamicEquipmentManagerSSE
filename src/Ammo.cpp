@@ -153,6 +153,14 @@ namespace Ammo
 	}
 
 
+	TESEquipEventHandler::TESEquipEventHandler()
+	{}
+
+
+	TESEquipEventHandler::~TESEquipEventHandler()
+	{}
+
+
 	RE::EventResult TESEquipEventHandler::ReceiveEvent(RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>* a_eventSource)
 	{
 		using RE::EventResult;
@@ -194,6 +202,25 @@ namespace Ammo
 	}
 
 
+	TESEquipEventHandler* TESEquipEventHandler::GetSingleton()
+	{
+		if (!_singleton) {
+			_singleton = new TESEquipEventHandler();
+		}
+		return _singleton;
+	}
+
+
+	void TESEquipEventHandler::Free()
+	{
+		delete _singleton;
+		_singleton = 0;
+	}
+
+
+	TESEquipEventHandler* TESEquipEventHandler::_singleton = 0;
+
+
 	bool TESEquipEventHandler::Visitor::Accept(RE::InventoryEntryData* a_entry, SInt32 a_count)
 	{
 		if (a_entry->type->formID == g_lastEquippedAmmo.GetLoadedFormID() && a_entry->extraList) {
@@ -207,5 +234,4 @@ namespace Ammo
 
 
 	Ammo g_lastEquippedAmmo;
-	TESEquipEventHandler g_equipEventSink;
 }

@@ -2,7 +2,10 @@
 
 #include "skse64/PluginAPI.h"  // SKSETaskInterface
 
+#include "RE/BSAnimationGraphEvent.h"  // BSAnimationGraphEvent
+#include "RE/BSTEvent.h"  // BSTEventSink
 #include "RE/InventoryEntryData.h"  // InventoryEntryData
+#include "RE/TESObjectLoadedEvent.h"  // TESObjectLoadedEvent
 
 
 class InventoryChangesVisitor
@@ -13,6 +16,7 @@ public:
 
 
 void VisitPlayerInventoryChanges(InventoryChangesVisitor* a_visitor);
+bool SinkAnimationGraphEventHandler(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink);
 
 
 extern SKSETaskInterface* g_task;

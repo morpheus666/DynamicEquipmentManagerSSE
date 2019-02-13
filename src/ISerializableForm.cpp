@@ -40,7 +40,7 @@ bool ISerializableForm::Save(json& a_save)
 			{ MAKE_STR(_isLightMod), _isLightMod },
 			{ MAKE_STR(_isGeneratedID), _isGeneratedID }
 		};
-	} catch (std::exception& e) {
+	} catch (std::exception & e) {
 		_ERROR("[ERROR] %s", e.what());
 		return false;
 	}
@@ -69,7 +69,7 @@ bool ISerializableForm::Load(json& a_load)
 		if (!loadJsonObj(a_load, MAKE_STR(_isGeneratedID), _isGeneratedID)) {
 			return false;
 		}
-	} catch (std::exception& e) {
+	} catch (std::exception & e) {
 		_ERROR("[ERROR] %s", e.what());
 		return false;
 	}
@@ -78,8 +78,6 @@ bool ISerializableForm::Load(json& a_load)
 }
 
 
-#pragma warning (push)
-#pragma warning (disable : 4333)  // '>>': right shift by too large amount, data loss
 void ISerializableForm::SetForm(UInt32 a_formID)
 {
 	if (a_formID == _loadedFormID) {
@@ -89,20 +87,18 @@ void ISerializableForm::SetForm(UInt32 a_formID)
 	RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
 	UInt32 rawFormID = a_formID;
 	UInt8 idx = a_formID >> (3 * 8);
+	idx &= 0xFF;
 	const RE::TESFile* modInfo = 0;
 	bool isLightMod = idx == 0xFE;
 	bool isGeneratedID = idx == 0xFF;
 	if (isLightMod) {
-		UInt16 lightIdx = a_formID << (1 * 8);
-		lightIdx = lightIdx >> ((2 * 8) + 4);
+		UInt16 lightIdx = (a_formID >> ((1 * 8) + 4)) & 0xFFF;
 		modInfo = dataHandler->LookupLoadedLightModByIndex(lightIdx);
-		rawFormID = rawFormID << ((2 * 8) + 4);
-		rawFormID = rawFormID >> ((2 * 8) + 4);
+		rawFormID &= 0xFFF;
 	} else {
 		if (!isGeneratedID) {
 			modInfo = dataHandler->LookupLoadedModByIndex(idx);
-			rawFormID = rawFormID << (1 * 8);
-			rawFormID = rawFormID >> (1 * 8);
+			rawFormID &= 0xFFFFFF;
 		}
 	}
 
@@ -114,7 +110,6 @@ void ISerializableForm::SetForm(UInt32 a_formID)
 		_isGeneratedID = isGeneratedID;
 	}
 }
-#pragma warning (pop)
 
 
 UInt32 ISerializableForm::GetLoadedFormID()

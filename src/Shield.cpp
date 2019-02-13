@@ -113,6 +113,26 @@ namespace Shield
 	}
 
 
+	void AnimGraphSinkDelegate::Run()
+	{
+		SinkAnimationGraphEventHandler(BSAnimationGraphEventHandler::GetSingleton());
+	}
+
+
+	void AnimGraphSinkDelegate::Dispose()
+	{
+		delete this;
+	}
+
+
+	TESEquipEventHandler::TESEquipEventHandler()
+	{}
+
+
+	TESEquipEventHandler::~TESEquipEventHandler()
+	{}
+
+
 	RE::EventResult TESEquipEventHandler::ReceiveEvent(RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>* a_eventSource)
 	{
 		using RE::EventResult;
@@ -139,6 +159,49 @@ namespace Shield
 		}
 
 		return EventResult::kContinue;
+	}
+
+
+	TESEquipEventHandler* TESEquipEventHandler::GetSingleton()
+	{
+		if (!_singleton) {
+			_singleton = new TESEquipEventHandler();
+		}
+		return _singleton;
+	}
+
+
+	void TESEquipEventHandler::Free()
+	{
+		delete _singleton;
+		_singleton = 0;
+	}
+
+
+	TESEquipEventHandler* TESEquipEventHandler::_singleton = 0;
+
+
+	BSAnimationGraphEventHandler::BSAnimationGraphEventHandler()
+	{}
+
+
+	BSAnimationGraphEventHandler::~BSAnimationGraphEventHandler()
+	{}
+
+
+	BSAnimationGraphEventHandler* BSAnimationGraphEventHandler::GetSingleton()
+	{
+		if (!_singleton) {
+			_singleton = new BSAnimationGraphEventHandler();
+		}
+		return _singleton;
+	}
+
+
+	void BSAnimationGraphEventHandler::Free()
+	{
+		delete _singleton;
+		_singleton = 0;
 	}
 
 
@@ -171,10 +234,19 @@ namespace Shield
 		case Anim::kTailCombatIdle:
 			g_skipAnim = false;
 			break;
+		case Anim::kGraphDeleting:
+			{
+				TaskDelegate* dlgt = new AnimGraphSinkDelegate();
+				g_task->AddTask(dlgt);
+			}
+			break;
 		}
 
 		return EventResult::kContinue;
 	}
+
+
+	BSAnimationGraphEventHandler* BSAnimationGraphEventHandler::_singleton = 0;
 
 
 	class PlayerCharacterEx : public RE::PlayerCharacter
@@ -215,6 +287,4 @@ namespace Shield
 
 
 	Shield g_lastEquippedShield;
-	TESEquipEventHandler g_equipEventSink;
-	BSAnimationGraphEventHandler g_animationGraphEventSink;
 }

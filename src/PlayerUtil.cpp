@@ -1,4 +1,4 @@
-#include "PlayerInventoryChanges.h"
+#include "PlayerUtil.h"
 
 #include "skse64/PluginAPI.h"  // SKSETaskInterface
 
@@ -6,6 +6,8 @@
 #include <map>  // map
 #include <vector>  // vector
 
+#include "RE/BSAnimationGraphManager.h"  // BSAnimationGraphManagerPtr
+#include "RE/BShkbAnimationGraph.h"  // BShkbAnimationGraph
 #include "RE/PlayerCharacter.h"  // PlayerCharacter
 #include "RE/InventoryChanges.h"  // InventoryChanges
 #include "RE/TESContainer.h"  // TESContainer
@@ -83,6 +85,34 @@ void VisitPlayerInventoryChanges(InventoryChangesVisitor* a_visitor)
 	}
 
 	visitor.Free();
+}
+
+
+bool SinkAnimationGraphEventHandler(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink)
+{
+	RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+	RE::BSAnimationGraphManagerPtr graphManager;
+	player->GetAnimationGraphManager(graphManager);
+	if (graphManager) {
+		bool sinked = false;
+		for (auto& animationGraph : graphManager->animationGraphs) {
+			if (sinked) {
+				break;
+			}
+			RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource = animationGraph->GetBSAnimationGraphEventSource();
+			for (auto& sink : eventSource->eventSinks) {
+				if (sink == a_sink) {
+					sinked = true;
+					break;
+				}
+			}
+		}
+		if (!sinked) {
+			graphManager->animationGraphs.front()->GetBSAnimationGraphEventSource()->AddEventSink(a_sink);
+			return true;
+		}
+	}
+	return false;
 }
 
 
