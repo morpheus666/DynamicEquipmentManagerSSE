@@ -83,7 +83,7 @@ namespace Shield
 			RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 			RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
 			RE::BaseExtraList* xList = (a_entry->extraList && !a_entry->extraList->empty()) ? a_entry->extraList->front() : 0;
-			equipManager->EquipItem(player, shield, xList, 1, shield->equipmentType, true, false, false, 0);
+			equipManager->EquipItem(player, shield, xList, 1, shield->equipmentType, true, false, false);
 			return false;
 		}
 		return true;
@@ -102,7 +102,7 @@ namespace Shield
 						if (armor->HasPartOf(FirstPersonFlag::kShield)) {
 							RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 							RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-							equipManager->UnEquipItem(player, armor, xList, 1, armor->equipmentType, true, false, true, false, 0);
+							equipManager->UnEquipItem(player, armor, xList, 1, armor->equipmentType, true, false);
 							return false;
 						}
 					}

@@ -72,7 +72,7 @@ namespace Ammo
 			if (ammo) {
 				RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 				RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-				equipManager->EquipItem(player, ammo, 0, visitor.Count(), 0, true, false, false, 0);
+				equipManager->EquipItem(player, ammo, 0, visitor.Count(), 0, true, false, false);
 
 				RE::MenuManager* mm = RE::MenuManager::GetSingleton();
 				RE::UIStringHolder* uiStrHolder = RE::UIStringHolder::GetSingleton();
@@ -112,7 +112,7 @@ namespace Ammo
 				if (xList->HasType(RE::ExtraDataType::kWorn) || xList->HasType(RE::ExtraDataType::kWornLeft)) {
 					RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 					RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-					equipManager->UnEquipItem(player, a_entry->type, xList, a_count, 0, true, false, true, false, 0);
+					equipManager->UnEquipItem(player, a_entry->type, xList, a_count, 0, true, false);
 
 					RE::MenuManager* mm = RE::MenuManager::GetSingleton();
 					RE::UIStringHolder* uiStrHolder = RE::UIStringHolder::GetSingleton();
@@ -226,7 +226,8 @@ namespace Ammo
 		if (a_entry->type->formID == g_lastEquippedAmmo.GetLoadedFormID() && a_entry->extraList) {
 			RE::EquipManager* equipManager = RE::EquipManager::GetSingleton();
 			RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-			equipManager->UnEquipItem(player, a_entry->type, a_entry->extraList->front(), a_count, 0, true, false, true, false, 0);
+			RE::BaseExtraList* xList = a_entry->extraList->empty() ? 0 : a_entry->extraList->front();
+			equipManager->UnEquipItem(player, a_entry->type, xList, a_count, 0, true, false);
 			return false;
 		}
 		return true;
