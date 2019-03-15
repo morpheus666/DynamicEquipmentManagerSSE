@@ -9,18 +9,7 @@
 #include "Settings.h"  // Settings
 #include "version.h"  // MAKE_STR
 
-#include "RE/ActorProcessManager.h"  // ActorProcessManager
-#include "RE/BaseExtraList.h"  // BaseExtraList
-#include "RE/BShkbAnimationGraph.h"  // BShkbAnimationGraph
-#include "RE/BSTEvent.h"  // EventResult, BSTEventSource
-#include "RE/EnchantmentItem.h"  // EnchantmentItem
-#include "RE/EquipManager.h"  // EquipManager
-#include "RE/ExtraDataTypes.h"  // ExtraDataType
-#include "RE/ExtraEnchantment.h"  // ExtraEnchantment
-#include "RE/FormTypes.h"  // FormType
-#include "RE/InventoryEntryData.h"  // InventoryEntryData
-#include "RE/PlayerCharacter.h"  // PlayerCharacter
-#include "RE/TESObjectARMO.h"  // TESObjectARMO
+#include "RE/Skyrim.h"
 
 
 namespace Shield
@@ -268,8 +257,7 @@ namespace Shield
 
 		static void InstallHooks()
 		{
-			constexpr uintptr_t PLAYER_CHARACTER_VTBL = 0x0167D640;
-			RelocPtr<_OnItemEquipped_t*> vtbl_OnItemEquipped(PLAYER_CHARACTER_VTBL + (0xB2 * 0x8));
+			RelocPtr<_OnItemEquipped_t*> vtbl_OnItemEquipped(RE::Offset::PlayerCharacter::Vtbl + (0xB2 * 0x8));
 			orig_OnItemEquipped = *vtbl_OnItemEquipped;
 			SafeWrite64(vtbl_OnItemEquipped.GetUIntPtr(), GetFnAddr(&Hook_OnItemEquipped));
 			_DMESSAGE("[DEBUG] Installed hooks for (%s)", typeid(PlayerCharacterEx).name());

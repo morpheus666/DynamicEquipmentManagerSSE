@@ -14,12 +14,7 @@
 #include "Shield.h"  // g_lastEquippedShield
 #include "version.h"  // DNEM_VERSION_VERSTRING
 
-#include "RE/BSAnimationGraphManager.h"  // BSAnimationGraphManager
-#include "RE/BShkbAnimationGraph.h"  // BShkbAnimationGraph
-#include "RE/BSTEvent.h"  // BSTEventSource, BSTEventSink, EventResult
-#include "RE/PlayerCharacter.h"  // PlayerCharacter
-#include "RE/ScriptEventSourceHolder.h"  // ScriptEventSourceHolder
-#include "RE/TESObjectLoadedEvent.h"  // TESObjectLoadedEvent
+#include "RE/Skyrim.h"
 
 
 static PluginHandle					g_pluginHandle = kPluginHandle_Invalid;
@@ -243,7 +238,7 @@ extern "C" {
 			return false;
 		}
 
-		if (a_skse->runtimeVersion != RUNTIME_VERSION_1_5_62) {
+		if (a_skse->runtimeVersion != RUNTIME_VERSION_1_5_73) {
 			_FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->runtimeVersion);
 			return false;
 		}
