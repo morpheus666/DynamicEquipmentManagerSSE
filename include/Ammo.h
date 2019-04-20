@@ -2,22 +2,10 @@
 
 #include "skse64/gamethreads.h"  // TaskDelegate
 
-#include <string>  // string
-
 #include "ISerializableForm.h"  // ISerializableForm, kInvalid
-#include "json.hpp"  // json
 #include "PlayerUtil.h"  // InventoryChangesVisitor
 
-#include "RE/BSTEvent.h"  // BSTEventSink, EventResult, BSTEventSource
-#include "RE/FormTypes.h"  // TESAmmo
-#include "RE/Memory.h"  // TES_HEAP_REDEFINE_NEW
-#include "RE/TESEquipEvent.h"  // TESEquipEvent
-
-namespace RE
-{
-	class BaseExtraList;
-	class InventoryEntryData;
-}
+#include "RE/Skyrim.h"
 
 
 namespace Ammo
@@ -25,11 +13,18 @@ namespace Ammo
 	class Ammo : public ISerializableForm
 	{
 	public:
-		Ammo();
-		virtual ~Ammo();
+		static Ammo* GetSingleton();
 
-		virtual const char*	ClassName() const override;
-		RE::TESAmmo*		GetAmmoForm();
+		RE::TESAmmo* GetForm();
+
+	protected:
+		Ammo() = default;
+		Ammo(const Ammo&) = delete;
+		Ammo(Ammo&&) = delete;
+		~Ammo() = default;
+
+		Ammo& operator=(const Ammo&) = delete;
+		Ammo& operator=(Ammo&&) = delete;
 	};
 
 
@@ -39,21 +34,19 @@ namespace Ammo
 		class Visitor : public InventoryChangesVisitor
 		{
 		public:
-			constexpr Visitor() :
-				_count(0)
-			{}
+			Visitor();
+			virtual ~Visitor() = default;
 
-			virtual bool		Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) override;
-			constexpr SInt32	Count() const { return _count; }
+			virtual bool Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) override;
+			SInt32 Count() const;
 
 		private:
 			SInt32 _count;
 		};
 
+
 		virtual void Run() override;
 		virtual void Dispose() override;
-
-		TES_HEAP_REDEFINE_NEW();
 	};
 
 
@@ -66,20 +59,18 @@ namespace Ammo
 			virtual bool Accept(RE::InventoryEntryData* a_entry, SInt32 a_count) override;
 		};
 
+
 		virtual void Run() override;
 		virtual void Dispose() override;
-
-		TES_HEAP_REDEFINE_NEW();
 	};
 
 
 	class TESEquipEventHandler : public RE::BSTEventSink<RE::TESEquipEvent>
 	{
-	protected:
-		TESEquipEventHandler();
-		virtual ~TESEquipEventHandler();
-
 	public:
+		using EventResult = RE::EventResult;
+
+
 		class Visitor : public InventoryChangesVisitor
 		{
 		public:
@@ -87,18 +78,23 @@ namespace Ammo
 		};
 
 
-		virtual RE::EventResult ReceiveEvent(RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>* a_eventSource) override;
-
 		static TESEquipEventHandler* GetSingleton();
-		static void Free();
+		virtual EventResult ReceiveEvent(RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>* a_eventSource) override;
 
 	protected:
-		static TESEquipEventHandler* _singleton;
+		TESEquipEventHandler() = default;
+		TESEquipEventHandler(const TESEquipEventHandler&) = delete;
+		TESEquipEventHandler(TESEquipEventHandler&&) = delete;
+		virtual ~TESEquipEventHandler() = default;
+
+		TESEquipEventHandler& operator=(const TESEquipEventHandler&) = delete;
+		TESEquipEventHandler& operator=(TESEquipEventHandler&&) = delete;
 	};
 
 
-	static UInt32 g_equippedAmmoFormID = kInvalid;
-	static UInt32 g_equippedWeaponFormID = kInvalid;
-
-	extern Ammo g_lastEquippedAmmo;
+	namespace
+	{
+		UInt32 g_equippedAmmoFormID = kInvalid;
+		UInt32 g_equippedWeaponFormID = kInvalid;
+	}
 }

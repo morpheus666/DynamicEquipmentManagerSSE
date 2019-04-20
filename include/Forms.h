@@ -1,27 +1,26 @@
 #pragma once
 
-#include <string>  // string
+#include <string>
 
-#include "RE/BGSKeyword.h"  // BGSKeyword
-#include "RE/TESDataHandler.h"  // TESDataHandler
-#include "RE/TESFile.h"  // TESFile
-#include "RE/TESForm.h"  // LookupByID
+#include "RE/Skyrim.h"
 
 
-enum SkyrimFormID : UInt32
+namespace
 {
-	kSkyrimFormID_WeapTypeBoundArrow = 0x10D501
-};
+	enum : UInt32
+	{
+		kWeapTypeBoundArrow = 0x10D501,
+		kWerewolfBeastRace = 0x0CDD84,
+		kDLC1VampireBeastRace = 0x00283A
+	};
+}
 
 
 template <typename T>
 class Form
 {
 public:
-	enum
-	{
-		kInvalid = 0xFFFFFFFF
-	};
+	enum : UInt32 { kInvalid = static_cast<UInt32>(-1) };
 
 
 	Form(UInt32 a_rawFormID, std::string a_pluginName) :
@@ -38,8 +37,8 @@ public:
 		}
 
 		if (_loadedFormID == kInvalid) {
-			RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
-			const RE::TESFile* modInfo = dataHandler->LookupLoadedModByName(_pluginName.c_str());
+			auto dataHandler = RE::TESDataHandler::GetSingleton();
+			auto modInfo = dataHandler->LookupLoadedModByName(_pluginName.c_str());
 			if (modInfo) {
 				_loadedFormID = _rawFormID + (modInfo->modIndex << (3 * 8));
 			} else {
@@ -58,4 +57,6 @@ private:
 };
 
 
-extern Form<RE::BGSKeyword> WeapTypeBoundArrow;
+extern Form<RE::BGSKeyword>	WeapTypeBoundArrow;
+extern Form<RE::TESRace>	WerewolfBeastRace;
+extern Form<RE::TESRace>	DLC1VampireBeastRace;

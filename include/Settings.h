@@ -16,5 +16,5 @@ public:
 	static bSetting	manageShield;
 
 private:
-	static constexpr char* FILE_NAME = "Data\\SKSE\\Plugins\\DynamicEquipmentManagerSSE.json";
+	static constexpr char FILE_NAME[] = "Data\\SKSE\\Plugins\\DynamicEquipmentManagerSSE.json";
 };

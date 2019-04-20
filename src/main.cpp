@@ -1,225 +1,196 @@
-﻿#include "skse64/PluginAPI.h"  // PluginHandle, SKSEMessagingInterface, SKSEInterface, PluginInfo, SKSETaskInterface, SKSESerializationInterface
-#include "skse64_common/skse_version.h"  // RUNTIME_VERSION
+﻿#include "skse64_common/skse_version.h"  // RUNTIME_VERSION
 
-#include <exception> // exception
+#include <string>  // string
 
 #include <ShlObj.h>  // CSIDL_MYDOCUMENTS
 
-#include "Ammo.h"  // g_lastEquippedAmmo, g_equipEventSink
-#include "Exceptions.h"  // bad_record_info, bad_record_version, bad_record_read, bad_ammo_save, bad_helmet_save, bad_shield_save, bad_ammo_load, bad_helmet_load, bad_shield_load
-#include "Helmet.h"  // g_lastEquippedHelmet, g_equipEventSink
-#include "json.hpp"  // json
-#include "PlayerUtil.h"  // g_task, SinkAnimationGraphEventHandler
+#include "Ammo.h"  // Ammo, TESEquipEventHandler
+#include "Helmet.h"  // Helmet, BSAnimationGraphEventHandler
+#include "PlayerUtil.h"  // SinkAnimationGraphEventHandler
 #include "Settings.h"  // Settings
-#include "Shield.h"  // g_lastEquippedShield
-#include "version.h"  // DNEM_VERSION_VERSTRING
+#include "Shield.h"  // Shield, BSAnimationGraphEventHandler
+#include "version.h"  // VERSION_VERSTRING, VERSION_MAJOR
 
+#include "SKSE/API.h"
 #include "RE/Skyrim.h"
 
 
-static PluginHandle					g_pluginHandle = kPluginHandle_Invalid;
-static SKSEMessagingInterface*		g_messaging = 0;
-static SKSESerializationInterface*	g_serialization = 0;
-
-constexpr UInt32 SERIALIZATION_VERSION = 2;
-
-
-void SaveCallback(SKSESerializationInterface* a_intfc)
+namespace
 {
-	using nlohmann::json;
-	using Ammo::g_lastEquippedAmmo;
-	using Helmet::g_lastEquippedHelmet;
-	using Shield::g_lastEquippedShield;
-
-	try {
-		json ammoSave;
-		if (!g_lastEquippedAmmo.Save(ammoSave)) {
-			g_lastEquippedAmmo.Clear();
-			throw bad_ammo_save();
-		}
-
-		json helmetSave;
-		if (!g_lastEquippedHelmet.Save(helmetSave)) {
-			g_lastEquippedHelmet.Clear();
-			throw bad_helmet_save();
-		}
-
-		json shieldSave;
-		if (!g_lastEquippedShield.Save(shieldSave)) {
-			g_lastEquippedShield.Clear();
-			throw bad_shield_save();
-		}
-
-		json save = {
-			{ g_lastEquippedAmmo.ClassName(), ammoSave },
-			{ g_lastEquippedHelmet.ClassName(), helmetSave },
-			{ g_lastEquippedShield.ClassName(), shieldSave }
-		};
-
-		std::string buf = save.dump(4);
-#if _DEBUG
-		_DMESSAGE("\nSERIALIZATION SAVE DUMP\n%s\n", buf.c_str());
-#endif
-		g_serialization->WriteRecord('DNAM', SERIALIZATION_VERSION, buf.c_str(), buf.length() + 1);
-	} catch (std::exception& e) {
-		_ERROR("[ERROR] %s", e.what());
-	}
-
-	_MESSAGE("[MESSAGE] Finished saving data");
-}
-
-
-void LoadCallback(SKSESerializationInterface* a_intfc)
-{
-	using nlohmann::json;
-	using Ammo::g_lastEquippedAmmo;
-	using Helmet::g_lastEquippedHelmet;
-	using Shield::g_lastEquippedShield;
-
-	UInt32 type;
-	UInt32 version;
-	UInt32 length;
-	char* buf = 0;
-
-	g_lastEquippedAmmo.Clear();
-	g_lastEquippedHelmet.Clear();
-	g_lastEquippedShield.Clear();
-
-	try {
-		if (!a_intfc->GetNextRecordInfo(&type, &version, &length)) {
-			throw bad_record_info();
-		}
-
-		if (version != SERIALIZATION_VERSION) {
-			throw bad_record_version(SERIALIZATION_VERSION, version);
-		}
-
-		buf = new char[length];
-		if (!a_intfc->ReadRecordData(buf, length)) {
-			throw bad_record_read();
-		}
-
-		json load = json::parse(buf);
-
-#if _DEBUG
-		_DMESSAGE("\nSERIALIZATION LOAD DUMP\n%s\n", load.dump(4).c_str());
-#endif
-
-		auto& it = load.find(g_lastEquippedAmmo.ClassName());
-		if (it == load.end() || !g_lastEquippedAmmo.Load(*it)) {
-			g_lastEquippedAmmo.Clear();
-			throw bad_ammo_load();
-		}
-
-		it = load.find(g_lastEquippedHelmet.ClassName());
-		if (it == load.end() || !g_lastEquippedHelmet.Load(*it)) {
-			g_lastEquippedHelmet.Clear();
-			throw bad_helmet_load();
-		}
-
-		it = load.find(g_lastEquippedShield.ClassName());
-		if (it == load.end() || !g_lastEquippedShield.Load(*it)) {
-			g_lastEquippedShield.Clear();
-			throw bad_shield_load();
-		}
-	} catch (std::exception& e) {
-		_ERROR("[ERROR] %s\n", e.what());
-	}
-
-	delete buf;
-	buf = 0;
-
-	_MESSAGE("[MESSAGE] Finished loading data");
-}
-
-
-class TESObjectLoadedEventHandler : public RE::BSTEventSink<RE::TESObjectLoadedEvent>
-{
-protected:
-	TESObjectLoadedEventHandler()
-	{}
-
-
-	virtual ~TESObjectLoadedEventHandler()
-	{}
-
-public:
-	virtual RE::EventResult ReceiveEvent(RE::TESObjectLoadedEvent* a_event, RE::BSTEventSource<RE::TESObjectLoadedEvent>* a_eventSource) override
+	enum
 	{
-		using RE::EventResult;
+		kSerializationVersion = 3,
+		kDynamicEquipmentManager = 'DNEM',
+		kAmmo = 'AMMO',
+		kHelmet = 'HELM',
+		kShield = 'SHLD'
+	};
 
-		if (!a_event) {
+
+	std::string DecodeTypeCode(UInt32 a_typeCode)
+	{
+		constexpr std::size_t SIZE = sizeof(UInt32);
+
+		std::string sig;
+		sig.resize(SIZE);
+		char* iter = reinterpret_cast<char*>(&a_typeCode);
+		for (std::size_t i = 0, j = SIZE - 2; i < SIZE - 1; ++i, --j) {
+			sig[j] = iter[i];
+		}
+		return sig;
+	}
+
+
+	void SaveCallback(SKSE::SerializationInterface* a_intfc)
+	{
+		auto ammo = Ammo::Ammo::GetSingleton();
+		if (!ammo->Save(a_intfc, kAmmo, kSerializationVersion)) {
+			_ERROR("[ERROR] Failed to save ammo!\n");
+			ammo->Clear();
+		}
+
+		auto helmet = Helmet::Helmet::GetSingleton();
+		if (!helmet->Save(a_intfc, kHelmet, kSerializationVersion)) {
+			_ERROR("[ERROR] Failed to save helmet!\n");
+			helmet->Clear();
+		}
+
+		auto shield = Shield::Shield::GetSingleton();
+		if (!shield->Save(a_intfc, kShield, kSerializationVersion)) {
+			_ERROR("[ERROR] Failed to save shield!\n");
+			shield->Clear();
+		}
+
+		_MESSAGE("[MESSAGE] Finished saving data");
+	}
+
+
+	void LoadCallback(SKSE::SerializationInterface* a_intfc)
+	{
+		auto ammo = Ammo::Ammo::GetSingleton();
+		ammo->Clear();
+		auto helmet = Helmet::Helmet::GetSingleton();
+		helmet->Clear();
+		auto shield = Shield::Shield::GetSingleton();
+		shield->Clear();
+
+		UInt32 type;
+		UInt32 version;
+		UInt32 length;
+		while (a_intfc->GetNextRecordInfo(type, version, length)) {
+			if (version != kSerializationVersion) {
+				_ERROR("[ERROR] Loaded data is out of date! Read (%u), expected (%u) for type code (%s)", version, kSerializationVersion, DecodeTypeCode(type).c_str());
+				continue;
+			}
+
+			switch (type) {
+			case kAmmo:
+				if (!ammo->Load(a_intfc)) {
+					_ERROR("[ERROR] Failed to load ammo!\n");
+					ammo->Clear();
+				}
+				break;
+			case kHelmet:
+				if (!helmet->Load(a_intfc)) {
+					_ERROR("[ERROR] Failed to load helmet!\n");
+					helmet->Clear();
+				}
+				break;
+			case kShield:
+				if (!shield->Load(a_intfc)) {
+					_ERROR("[ERROR] Failed to load shield!\n");
+					shield->Clear();
+				}
+				break;
+			default:
+				_ERROR("[ERROR] Unrecognized record type (%s)!", DecodeTypeCode(type).c_str());
+				break;
+			}
+		}
+
+		_MESSAGE("[MESSAGE] Finished loading data");
+	}
+
+
+	class TESObjectLoadedEventHandler : public RE::BSTEventSink<RE::TESObjectLoadedEvent>
+	{
+	public:
+		using EventResult = RE::EventResult;
+
+
+		static TESObjectLoadedEventHandler* GetSingleton()
+		{
+			static TESObjectLoadedEventHandler singleton;
+			return &singleton;
+		}
+
+
+		virtual EventResult ReceiveEvent(RE::TESObjectLoadedEvent* a_event, RE::BSTEventSource<RE::TESObjectLoadedEvent>* a_eventSource) override
+		{
+			if (!a_event) {
+				return EventResult::kContinue;
+			}
+
+			auto player = RE::PlayerCharacter::GetSingleton();
+			if (a_event->formID == player->formID) {
+				if (Settings::manageHelmet) {
+					if (SinkAnimationGraphEventHandler(Helmet::BSAnimationGraphEventHandler::GetSingleton())) {
+						_MESSAGE("[MESSAGE] Registered helmet player animation event handler");
+					}
+				}
+				if (Settings::manageShield) {
+					if (SinkAnimationGraphEventHandler(Shield::BSAnimationGraphEventHandler::GetSingleton())) {
+						_MESSAGE("[MESSAGE] Registered shield player animation event handler");
+					}
+				}
+			}
+
 			return EventResult::kContinue;
 		}
 
-		RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-		if (a_event->formID == player->formID) {
-			if (Settings::manageHelmet) {
-				if (SinkAnimationGraphEventHandler(Helmet::BSAnimationGraphEventHandler::GetSingleton())) {
-					_MESSAGE("[MESSAGE] Registered helmet player animation event handler");
+	protected:
+		TESObjectLoadedEventHandler() = default;
+		TESObjectLoadedEventHandler(const TESObjectLoadedEventHandler&) = delete;
+		TESObjectLoadedEventHandler(TESObjectLoadedEventHandler&&) = delete;
+		virtual ~TESObjectLoadedEventHandler() = default;
+
+		TESObjectLoadedEventHandler& operator=(const TESObjectLoadedEventHandler&) = delete;
+		TESObjectLoadedEventHandler& operator=(TESObjectLoadedEventHandler&&) = delete;
+	};
+
+
+	void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
+	{
+		switch (a_msg->type) {
+		case SKSE::MessagingInterface::kDataLoaded:
+			{
+				auto sourceHolder = RE::ScriptEventSourceHolder::GetSingleton();
+				sourceHolder->objectLoadedEventSource.AddEventSink(TESObjectLoadedEventHandler::GetSingleton());
+				_MESSAGE("[MESSAGE] Registered object loaded event handler");
+
+				if (Settings::manageAmmo) {
+					sourceHolder->equipEventSource.AddEventSink(Ammo::TESEquipEventHandler::GetSingleton());
+					_MESSAGE("[MESSAGE] Registered ammo equip event handler");
+				}
+
+				if (Settings::manageHelmet) {
+					sourceHolder->equipEventSource.AddEventSink(Helmet::TESEquipEventHandler::GetSingleton());
+					_MESSAGE("[MESSAGE] Registered helmet equip event handler");
+				}
+
+				if (Settings::manageShield) {
+					sourceHolder->equipEventSource.AddEventSink(Shield::TESEquipEventHandler::GetSingleton());
+					_MESSAGE("[MESSAGE] Registered shield equip event handler");
 				}
 			}
-			if (Settings::manageShield) {
-				if (SinkAnimationGraphEventHandler(Shield::BSAnimationGraphEventHandler::GetSingleton())) {
-					_MESSAGE("[MESSAGE] Registered shield player animation event handler");
-				}
-			}
+			break;
 		}
-
-		return EventResult::kContinue;
-	}
-
-
-	static TESObjectLoadedEventHandler* GetSingleton()
-	{
-		if (!_singleton) {
-			_singleton = new TESObjectLoadedEventHandler();
-		}
-		return _singleton;
-	}
-
-
-	static void Free()
-	{
-		delete _singleton;
-		_singleton = 0;
-	}
-
-protected:
-	static TESObjectLoadedEventHandler* _singleton;
-};
-
-
-TESObjectLoadedEventHandler* TESObjectLoadedEventHandler::_singleton = 0;
-
-
-void MessageHandler(SKSEMessagingInterface::Message* a_msg)
-{
-	switch (a_msg->type) {
-	case SKSEMessagingInterface::kMessage_DataLoaded:
-		{
-			RE::ScriptEventSourceHolder* sourceHolder = RE::ScriptEventSourceHolder::GetSingleton();
-			sourceHolder->objectLoadedEventSource.AddEventSink(TESObjectLoadedEventHandler::GetSingleton());
-			if (Settings::manageAmmo) {
-				sourceHolder->equipEventSource.AddEventSink(Ammo::TESEquipEventHandler::GetSingleton());
-				_MESSAGE("[MESSAGE] Registered ammo equip event handler");
-			}
-			if (Settings::manageHelmet) {
-				sourceHolder->equipEventSource.AddEventSink(Helmet::TESEquipEventHandler::GetSingleton());
-				_MESSAGE("[MESSAGE] Registered helmet equip event handler");
-			}
-			if (Settings::manageShield) {
-				sourceHolder->equipEventSource.AddEventSink(Shield::TESEquipEventHandler::GetSingleton());
-				_MESSAGE("[MESSAGE] Registered shield equip event handler");
-			}
-		}
-		break;
 	}
 }
 
 
 extern "C" {
-	bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
+	bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
 	{
 		gLog.OpenRelative(CSIDL_MYDOCUMENTS, "\\My Games\\Skyrim Special Edition\\SKSE\\DynamicEquipmentManagerSSE.log");
 		gLog.SetPrintLevel(IDebugLog::kLevel_DebugMessage);
@@ -227,19 +198,15 @@ extern "C" {
 
 		_MESSAGE("DynamicEquipmentManagerSSE v%s", DNEM_VERSION_VERSTRING);
 
-		a_info->infoVersion = PluginInfo::kInfoVersion;
+		a_info->infoVersion = SKSE::PluginInfo::kVersion;
 		a_info->name = "DynamicEquipmentManagerSSE";
-		a_info->version = 1;
+		a_info->version = DNEM_VERSION_MAJOR;
 
-		g_pluginHandle = a_skse->GetPluginHandle();
-
-		if (a_skse->isEditor) {
+		if (a_skse->IsEditor()) {
 			_FATALERROR("[FATAL ERROR] Loaded in editor, marking as incompatible!\n");
 			return false;
-		}
-
-		if (a_skse->runtimeVersion != RUNTIME_VERSION_1_5_73) {
-			_FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->runtimeVersion);
+		} else if (a_skse->RuntimeVersion() != RUNTIME_VERSION_1_5_73) {
+			_FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->RuntimeVersion());
 			return false;
 		}
 
@@ -247,9 +214,13 @@ extern "C" {
 	}
 
 
-	bool SKSEPlugin_Load(const SKSEInterface* a_skse)
+	bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 	{
 		_MESSAGE("[MESSAGE] DynamicEquipmentManagerSSE loaded");
+
+		if (!SKSE::Init(a_skse)) {
+			return false;
+		}
 
 		if (Settings::loadSettings()) {
 			_MESSAGE("[MESSAGE] Settings loaded successfully");
@@ -261,32 +232,18 @@ extern "C" {
 			return false;
 		}
 
-		g_task = (SKSETaskInterface*)a_skse->QueryInterface(kInterface_Task);
-		if (g_task) {
-			_MESSAGE("[MESSAGE] Task interface query successful");
-		} else {
-			_FATALERROR("[FATAL ERROR] Task interface query failed!\n");
-			return false;
-		}
-
-		g_messaging = (SKSEMessagingInterface*)a_skse->QueryInterface(kInterface_Messaging);
-		if (g_messaging->RegisterListener(g_pluginHandle, "SKSE", MessageHandler)) {
+		auto messaging = SKSE::GetMessagingInterface();
+		if (messaging->RegisterListener("SKSE", MessageHandler)) {
 			_MESSAGE("[MESSAGE] Messaging interface registration successful");
 		} else {
 			_FATALERROR("[FATAL ERROR] Messaging interface registration failed!\n");
 			return false;
 		}
 
-		g_serialization = (SKSESerializationInterface*)a_skse->QueryInterface(kInterface_Serialization);
-		if (g_serialization) {
-			g_serialization->SetUniqueID(g_pluginHandle, 'DNEM');
-			g_serialization->SetSaveCallback(g_pluginHandle, SaveCallback);
-			g_serialization->SetLoadCallback(g_pluginHandle, LoadCallback);
-			_MESSAGE("[MESSAGE] Serialization interface query successful");
-		} else {
-			_FATALERROR("[FATAL ERROR] Serialization interface query failed!\n");
-			return false;
-		}
+		auto serialization = SKSE::GetSerializationInterface();
+		serialization->SetUniqueID(kDynamicEquipmentManager);
+		serialization->SetSaveCallback(SaveCallback);
+		serialization->SetLoadCallback(LoadCallback);
 
 		if (Settings::manageShield) {
 			Shield::InstallHooks();

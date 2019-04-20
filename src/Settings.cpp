@@ -8,6 +8,6 @@ bool Settings::loadSettings(bool a_dumpParse)
 }
 
 
-bSetting	Settings::manageAmmo("manageAmmo", true, true);
-bSetting	Settings::manageHelmet("manageHelmet", true, true);
-bSetting	Settings::manageShield("manageShield", true, true);
+decltype(Settings::manageAmmo)		Settings::manageAmmo("manageAmmo", true, true);
+decltype(Settings::manageHelmet)	Settings::manageHelmet("manageHelmet", true, true);
+decltype(Settings::manageShield)	Settings::manageShield("manageShield", true, true);

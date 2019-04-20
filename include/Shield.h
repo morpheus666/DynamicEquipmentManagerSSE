@@ -3,14 +3,9 @@
 #include "skse64/gamethreads.h"  // TaskDelegate
 
 #include "ISerializableForm.h"  // ISerializableForm
-#include "json.hpp"  // json
 #include "PlayerUtil.h"  // InventoryChangesVisitor
 
-#include "RE/BSAnimationGraphEvent.h"  // BSAnimationGraphEvent
-#include "RE/BSTEvent.h"  // BSTEventSink, EventResult, BSTEventSource
-#include "RE/FormTypes.h"  // TESObjectARMO, EnchantmentItem
-#include "RE/Memory.h"  // TES_HEAP_REDEFINE_NEW
-#include "RE/TESEquipEvent.h"  // TESEquipEvent
+#include "RE/Skyrim.h"
 
 
 namespace Shield
@@ -18,11 +13,18 @@ namespace Shield
 	class Shield : public ISerializableForm
 	{
 	public:
-		Shield();
-		virtual ~Shield();
+		static Shield* GetSingleton();
 
-		virtual const char*	ClassName() const override;
-		RE::TESObjectARMO*	GetArmorForm();
+		RE::TESObjectARMO* GetForm();
+
+	protected:
+		Shield() = default;
+		Shield(const Shield&) = delete;
+		Shield(Shield&&) = delete;
+		~Shield() = default;
+
+		Shield& operator=(const Shield&) = delete;
+		Shield& operator=(Shield&&) = delete;
 	};
 
 
@@ -43,14 +45,11 @@ namespace Shield
 		};
 
 
-		constexpr ShieldTaskDelegate(bool a_equip) :
-			_equip(a_equip)
-		{}
+		ShieldTaskDelegate(bool a_equip);
+		virtual ~ShieldTaskDelegate() = default;
 
 		virtual void Run() override;
 		virtual void Dispose() override;
-
-		TES_HEAP_REDEFINE_NEW();
 
 	private:
 		bool _equip;
@@ -60,54 +59,54 @@ namespace Shield
 	class AnimGraphSinkDelegate : public TaskDelegate
 	{
 	public:
-		constexpr AnimGraphSinkDelegate()
-		{}
-
 		virtual void Run() override;
 		virtual void Dispose() override;
-
-		TES_HEAP_REDEFINE_NEW();
 	};
 
 
 	class TESEquipEventHandler : public RE::BSTEventSink<RE::TESEquipEvent>
 	{
-	protected:
-		TESEquipEventHandler();
-		virtual ~TESEquipEventHandler();
-
 	public:
-		virtual RE::EventResult ReceiveEvent(RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>* a_eventSource) override;
+		using EventResult = RE::EventResult;
 
 		static TESEquipEventHandler* GetSingleton();
-		static void Free();
+		virtual EventResult ReceiveEvent(RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>* a_eventSource) override;
 
 	protected:
-		static TESEquipEventHandler* _singleton;
+		TESEquipEventHandler() = default;
+		TESEquipEventHandler(const TESEquipEventHandler&) = delete;
+		TESEquipEventHandler(TESEquipEventHandler&&) = delete;
+		virtual ~TESEquipEventHandler() = default;
+
+		TESEquipEventHandler& operator=(const TESEquipEventHandler&) = delete;
+		TESEquipEventHandler& operator=(TESEquipEventHandler&&) = delete;
 	};
 
 
 	class BSAnimationGraphEventHandler : public RE::BSTEventSink<RE::BSAnimationGraphEvent>
 	{
-	protected:
-		BSAnimationGraphEventHandler();
-		virtual ~BSAnimationGraphEventHandler();
-
 	public:
-		virtual RE::EventResult ReceiveEvent(RE::BSAnimationGraphEvent* a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource) override;
+		using EventResult = RE::EventResult;
 
 		static BSAnimationGraphEventHandler* GetSingleton();
-		static void Free();
+		virtual EventResult ReceiveEvent(RE::BSAnimationGraphEvent* a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource) override;
 
 	protected:
-		static BSAnimationGraphEventHandler* _singleton;
+		BSAnimationGraphEventHandler() = default;
+		BSAnimationGraphEventHandler(const BSAnimationGraphEventHandler&) = delete;
+		BSAnimationGraphEventHandler(BSAnimationGraphEventHandler&&) = delete;
+		virtual ~BSAnimationGraphEventHandler() = default;
+
+		BSAnimationGraphEventHandler& operator=(const BSAnimationGraphEventHandler&) = delete;
+		BSAnimationGraphEventHandler& operator=(BSAnimationGraphEventHandler&&) = delete;
 	};
 
 
 	void InstallHooks();
 
 
-	static bool g_skipAnim = false;
-
-	extern Shield g_lastEquippedShield;
+	namespace
+	{
+		bool g_skipAnim = false;
+	}
 }

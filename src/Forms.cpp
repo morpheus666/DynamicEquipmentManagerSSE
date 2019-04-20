@@ -1,6 +1,8 @@
 #include "Forms.h"
 
-#include "RE/BGSKeyword.h"  // BGSKeyword
+#include "RE/Skyrim.h"
 
 
-Form<RE::BGSKeyword> WeapTypeBoundArrow(kSkyrimFormID_WeapTypeBoundArrow, "Skyrim.esm");
+decltype(WeapTypeBoundArrow)	WeapTypeBoundArrow(kWeapTypeBoundArrow, "Skyrim.esm");
+decltype(WerewolfBeastRace)		WerewolfBeastRace(kWerewolfBeastRace, "Skyrim.esm");
+decltype(DLC1VampireBeastRace)	DLC1VampireBeastRace(kDLC1VampireBeastRace, "Dawnguard.esm");

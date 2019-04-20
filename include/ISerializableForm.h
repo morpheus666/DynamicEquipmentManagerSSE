@@ -1,59 +1,37 @@
 #pragma once
 
 #undef SetForm
+#undef GetForm
 
-#include "RE/Memory.h"  // TES_HEAP_REDEFINE_NEW
+#include "RE/Skyrim.h"
+#include "SKSE/Interfaces.h"
 
-#include "json.hpp"  // json
 
-
-enum
+enum : UInt32
 {
-	kInvalid = 0xFFFFFFFF
+	kInvalid = static_cast<UInt32>(-1)
 };
 
 
-// Needs to handle generated formIDs
 class ISerializableForm
 {
-protected:
-	using json = nlohmann::json;
-
 public:
 	ISerializableForm();
-	ISerializableForm(ISerializableForm& a_ISerializableForm) = default;
-	ISerializableForm(ISerializableForm&& a_ISerializableForm) = default;
+	ISerializableForm(ISerializableForm&) = default;
+	ISerializableForm(ISerializableForm&&) = default;
+	~ISerializableForm() = default;
 
-	virtual ~ISerializableForm();
+	ISerializableForm& operator=(const ISerializableForm&) = default;
+	ISerializableForm& operator=(ISerializableForm&&) = default;
 
-	TES_HEAP_REDEFINE_NEW();
-
-	virtual const char*		ClassName() const = 0;
-	void					Clear();
-	virtual bool			Save(json& a_save);
-	virtual bool			Load(json& a_load);
-	void					SetForm(UInt32 a_formID);
-	constexpr UInt32		GetRawFormID() const { return _rawFormID; }
-	UInt32					GetLoadedFormID();
+	void Clear();
+	bool Save(SKSE::SerializationInterface* a_intfc, UInt32 a_type, UInt32 a_version);
+	bool Save(SKSE::SerializationInterface* a_intfc);
+	bool Load(SKSE::SerializationInterface* a_intfc);
+	void SetForm(UInt32 a_formID);
+	RE::TESForm* GetForm();
+	UInt32 GetFormID();
 
 protected:
-	UInt32		_rawFormID;
-	UInt32		_loadedFormID;
-	std::string	_pluginName;
-	bool		_isLightMod;
-	bool		_isGeneratedID;
+	UInt32 _formID;
 };
-
-
-template <typename T>
-bool loadJsonObj(nlohmann::json& a_load, const char* a_name, T& a_val)
-{
-	auto& it = a_load.find(a_name);
-	if (it != a_load.end()) {
-		a_val = it.value();
-		return true;
-	} else {
-		_ERROR("[ERROR] Could not find (%s) in serialized save data!\n", a_name);
-		return false;
-	}
-}

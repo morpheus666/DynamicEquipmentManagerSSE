@@ -1,76 +1,45 @@
 #include "ISerializableForm.h"
 
-#include <exception>  // exception
-
-#include "version.h"  // MAKE_STR
-
-#include "RE/TESDataHandler.h"  // TESDataHandler
-#include "RE/TESFile.h"  // TESFile
+#include "RE/Skyrim.h"
+#include "SKSE/Interfaces.h"
 
 
 ISerializableForm::ISerializableForm() :
-	_rawFormID(kInvalid),
-	_loadedFormID(kInvalid),
-	_pluginName(""),
-	_isLightMod(false),
-	_isGeneratedID(false)
-{}
-
-
-ISerializableForm::~ISerializableForm()
+	_formID(kInvalid)
 {}
 
 
 void ISerializableForm::Clear()
 {
-	_rawFormID = kInvalid;
-	_loadedFormID = kInvalid;
-	_pluginName = "";
-	_isLightMod = false;
-	_isGeneratedID = false;
+	_formID = kInvalid;
 }
 
 
-bool ISerializableForm::Save(json& a_save)
+bool ISerializableForm::Save(SKSE::SerializationInterface* a_intfc, UInt32 a_type, UInt32 a_version)
 {
-	try {
-		a_save = {
-			{ MAKE_STR(_rawFormID), _rawFormID },
-			{ MAKE_STR(_pluginName), _pluginName },
-			{ MAKE_STR(_isLightMod), _isLightMod },
-			{ MAKE_STR(_isGeneratedID), _isGeneratedID }
-		};
-	} catch (std::exception& e) {
-		_ERROR("[ERROR] %s", e.what());
+	if (!a_intfc->OpenRecord(a_type, a_version)) {
+		_ERROR("[ERROR] Failed to open serialization record!\n");
 		return false;
+	} else {
+		return Save(a_intfc);
 	}
+}
+
+
+bool ISerializableForm::Save(SKSE::SerializationInterface* a_intfc)
+{
+	a_intfc->WriteRecordData(&_formID, sizeof(_formID));
 
 	return true;
 }
 
 
-bool ISerializableForm::Load(json& a_load)
+bool ISerializableForm::Load(SKSE::SerializationInterface* a_intfc)
 {
-	try {
-		if (!loadJsonObj(a_load, MAKE_STR(_rawFormID), _rawFormID)) {
-			return false;
-		}
-
-		_loadedFormID = kInvalid;
-
-		if (!loadJsonObj(a_load, MAKE_STR(_pluginName), _pluginName)) {
-			return false;
-		}
-
-		if (!loadJsonObj(a_load, MAKE_STR(_isLightMod), _isLightMod)) {
-			return false;
-		}
-
-		if (!loadJsonObj(a_load, MAKE_STR(_isGeneratedID), _isGeneratedID)) {
-			return false;
-		}
-	} catch (std::exception& e) {
-		_ERROR("[ERROR] %s", e.what());
+	a_intfc->ReadRecordData(&_formID, sizeof(_formID));
+	if (!a_intfc->ResolveFormID(_formID, _formID)) {
+		_ERROR("[ERROR] Failed to resolve formID");
+		_formID = kInvalid;
 		return false;
 	}
 
@@ -80,70 +49,17 @@ bool ISerializableForm::Load(json& a_load)
 
 void ISerializableForm::SetForm(UInt32 a_formID)
 {
-	if (a_formID == _loadedFormID) {
-		return;
-	}
-
-	RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
-	UInt32 rawFormID = a_formID;
-	UInt8 idx = (a_formID >> (3 * 8)) & 0xFF;
-	const RE::TESFile* modInfo = 0;
-	bool isLightMod = idx == 0xFE;
-	bool isGeneratedID = idx == 0xFF;
-	if (isLightMod) {
-		UInt16 lightIdx = (a_formID >> ((1 * 8) + 4)) & 0xFFF;
-		modInfo = dataHandler->LookupLoadedLightModByIndex(lightIdx);
-		rawFormID &= 0xFFF;
-	} else {
-		if (!isGeneratedID) {
-			modInfo = dataHandler->LookupLoadedModByIndex(idx);
-			rawFormID &= 0xFFFFFF;
-		}
-	}
-
-	if (isGeneratedID || modInfo) {
-		_pluginName = modInfo ? modInfo->name : "Skyrim.esm";
-		_rawFormID = rawFormID;
-		_loadedFormID = a_formID;
-		_isLightMod = isLightMod;
-		_isGeneratedID = isGeneratedID;
-	}
+	_formID = a_formID;
 }
 
 
-UInt32 ISerializableForm::GetLoadedFormID()
+RE::TESForm* ISerializableForm::GetForm()
 {
-	if (_rawFormID == kInvalid) {
-		return kInvalid;
-	}
+	return _formID == kInvalid ? 0 : RE::TESForm::LookupByID(_formID);
+}
 
-	if (_loadedFormID == kInvalid) {
-		RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
-		const RE::TESFile* modInfo = 0;
-		if (_isLightMod) {
-			modInfo = dataHandler->LookupLoadedLightModByName(_pluginName.c_str());
-			if (!modInfo) {
-				_rawFormID = kInvalid;
-				return kInvalid;
-			}
-			_loadedFormID = _rawFormID;
-			_loadedFormID += modInfo->lightIndex << ((1 * 8) + 4);
-			_loadedFormID += 0xFE << (3 * 8);
-		} else {
-			if (_isGeneratedID) {
-				_loadedFormID = _rawFormID;
-				_loadedFormID += 0xFF << (3 * 8);
-			} else {
-				modInfo = dataHandler->LookupLoadedModByName(_pluginName.c_str());
-				if (!modInfo) {
-					_rawFormID = kInvalid;
-					return kInvalid;
-				}
-				_loadedFormID = _rawFormID;
-				_loadedFormID += modInfo->modIndex << (3 * 8);
-			}
-		}
-	}
 
-	return _loadedFormID;
+UInt32 ISerializableForm::GetFormID()
+{
+	return _formID;
 }

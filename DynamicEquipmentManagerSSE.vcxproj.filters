@@ -47,9 +47,6 @@
     <ClInclude Include="include\Ammo.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="include\Exceptions.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="include\Forms.h">
       <Filter>include</Filter>
     </ClInclude>

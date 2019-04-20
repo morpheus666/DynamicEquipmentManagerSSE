@@ -2,10 +2,7 @@
 
 #include "FNV1A.h"  // hash_64_fnv1a_const, hash_64_fnv1a
 
-namespace RE
-{
-	class BSFixedString;
-}
+#include "RE/Skyrim.h"
 
 
 enum class Anim : std::uint64_t
@@ -18,4 +15,4 @@ enum class Anim : std::uint64_t
 
 
 Anim HashAnimation(const char* a_str, std::uint32_t a_len);
-Anim HashAnimation(RE::BSFixedString& a_str);
+Anim HashAnimation(const RE::BSFixedString& a_str);
