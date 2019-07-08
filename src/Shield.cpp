@@ -204,7 +204,7 @@ namespace Shield
 			REL::Offset<func_t**> vFunc(RE::Offset::PlayerCharacter::Vtbl + (0xB2 * 0x8));
 			func = *vFunc;
 			SafeWrite64(vFunc.GetAddress(), GetFnAddr(&Hook_OnItemEquipped));
-			_DMESSAGE("[DEBUG] Installed hooks for (%s)", typeid(PlayerCharacterEx).name());
+			_DMESSAGE("Installed hooks for (%s)", typeid(PlayerCharacterEx).name());
 		}
 	};
 

@@ -18,7 +18,7 @@ void ISerializableForm::Clear()
 bool ISerializableForm::Save(SKSE::SerializationInterface* a_intfc, UInt32 a_type, UInt32 a_version)
 {
 	if (!a_intfc->OpenRecord(a_type, a_version)) {
-		_ERROR("[ERROR] Failed to open serialization record!\n");
+		_ERROR("Failed to open serialization record!\n");
 		return false;
 	} else {
 		return Save(a_intfc);
@@ -38,7 +38,7 @@ bool ISerializableForm::Load(SKSE::SerializationInterface* a_intfc)
 {
 	a_intfc->ReadRecordData(&_formID, sizeof(_formID));
 	if (!a_intfc->ResolveFormID(_formID, _formID)) {
-		_ERROR("[ERROR] Failed to resolve formID");
+		_ERROR("Failed to resolve formID");
 		_formID = kInvalid;
 		return false;
 	}

@@ -43,23 +43,23 @@ namespace
 	{
 		auto ammo = Ammo::Ammo::GetSingleton();
 		if (!ammo->Save(a_intfc, kAmmo, kSerializationVersion)) {
-			_ERROR("[ERROR] Failed to save ammo!\n");
+			_ERROR("Failed to save ammo!\n");
 			ammo->Clear();
 		}
 
 		auto helmet = Helmet::Helmet::GetSingleton();
 		if (!helmet->Save(a_intfc, kHelmet, kSerializationVersion)) {
-			_ERROR("[ERROR] Failed to save helmet!\n");
+			_ERROR("Failed to save helmet!\n");
 			helmet->Clear();
 		}
 
 		auto shield = Shield::Shield::GetSingleton();
 		if (!shield->Save(a_intfc, kShield, kSerializationVersion)) {
-			_ERROR("[ERROR] Failed to save shield!\n");
+			_ERROR("Failed to save shield!\n");
 			shield->Clear();
 		}
 
-		_MESSAGE("[MESSAGE] Finished saving data");
+		_MESSAGE("Finished saving data");
 	}
 
 
@@ -77,36 +77,36 @@ namespace
 		UInt32 length;
 		while (a_intfc->GetNextRecordInfo(type, version, length)) {
 			if (version != kSerializationVersion) {
-				_ERROR("[ERROR] Loaded data is out of date! Read (%u), expected (%u) for type code (%s)", version, kSerializationVersion, DecodeTypeCode(type).c_str());
+				_ERROR("Loaded data is out of date! Read (%u), expected (%u) for type code (%s)", version, kSerializationVersion, DecodeTypeCode(type).c_str());
 				continue;
 			}
 
 			switch (type) {
 			case kAmmo:
 				if (!ammo->Load(a_intfc)) {
-					_ERROR("[ERROR] Failed to load ammo!\n");
+					_ERROR("Failed to load ammo!\n");
 					ammo->Clear();
 				}
 				break;
 			case kHelmet:
 				if (!helmet->Load(a_intfc)) {
-					_ERROR("[ERROR] Failed to load helmet!\n");
+					_ERROR("Failed to load helmet!\n");
 					helmet->Clear();
 				}
 				break;
 			case kShield:
 				if (!shield->Load(a_intfc)) {
-					_ERROR("[ERROR] Failed to load shield!\n");
+					_ERROR("Failed to load shield!\n");
 					shield->Clear();
 				}
 				break;
 			default:
-				_ERROR("[ERROR] Unrecognized record type (%s)!", DecodeTypeCode(type).c_str());
+				_ERROR("Unrecognized record type (%s)!", DecodeTypeCode(type).c_str());
 				break;
 			}
 		}
 
-		_MESSAGE("[MESSAGE] Finished loading data");
+		_MESSAGE("Finished loading data");
 	}
 
 
@@ -133,12 +133,12 @@ namespace
 			if (a_event->formID == player->formID) {
 				if (Settings::manageHelmet) {
 					if (SinkAnimationGraphEventHandler(Helmet::BSAnimationGraphEventHandler::GetSingleton())) {
-						_MESSAGE("[MESSAGE] Registered helmet player animation event handler");
+						_MESSAGE("Registered helmet player animation event handler");
 					}
 				}
 				if (Settings::manageShield) {
 					if (SinkAnimationGraphEventHandler(Shield::BSAnimationGraphEventHandler::GetSingleton())) {
-						_MESSAGE("[MESSAGE] Registered shield player animation event handler");
+						_MESSAGE("Registered shield player animation event handler");
 					}
 				}
 			}
@@ -164,21 +164,21 @@ namespace
 			{
 				auto sourceHolder = RE::ScriptEventSourceHolder::GetSingleton();
 				sourceHolder->objectLoadedEventSource.AddEventSink(TESObjectLoadedEventHandler::GetSingleton());
-				_MESSAGE("[MESSAGE] Registered object loaded event handler");
+				_MESSAGE("Registered object loaded event handler");
 
 				if (Settings::manageAmmo) {
 					sourceHolder->equipEventSource.AddEventSink(Ammo::TESEquipEventHandler::GetSingleton());
-					_MESSAGE("[MESSAGE] Registered ammo equip event handler");
+					_MESSAGE("Registered ammo equip event handler");
 				}
 
 				if (Settings::manageHelmet) {
 					sourceHolder->equipEventSource.AddEventSink(Helmet::TESEquipEventHandler::GetSingleton());
-					_MESSAGE("[MESSAGE] Registered helmet equip event handler");
+					_MESSAGE("Registered helmet equip event handler");
 				}
 
 				if (Settings::manageShield) {
 					sourceHolder->equipEventSource.AddEventSink(Shield::TESEquipEventHandler::GetSingleton());
-					_MESSAGE("[MESSAGE] Registered shield equip event handler");
+					_MESSAGE("Registered shield equip event handler");
 				}
 			}
 			break;
@@ -193,6 +193,7 @@ extern "C" {
 		SKSE::Logger::OpenRelative(FOLDERID_Documents, L"\\My Games\\Skyrim Special Edition\\SKSE\\DynamicEquipmentManagerSSE.log");
 		SKSE::Logger::SetPrintLevel(SKSE::Logger::Level::kDebugMessage);
 		SKSE::Logger::SetFlushLevel(SKSE::Logger::Level::kDebugMessage);
+		SKSE::Logger::UseLogStamp(true);
 
 		_MESSAGE("DynamicEquipmentManagerSSE v%s", DNEM_VERSION_VERSTRING);
 
@@ -201,7 +202,7 @@ extern "C" {
 		a_info->version = DNEM_VERSION_MAJOR;
 
 		if (a_skse->IsEditor()) {
-			_FATALERROR("[FATAL ERROR] Loaded in editor, marking as incompatible!\n");
+			_FATALERROR("Loaded in editor, marking as incompatible!\n");
 			return false;
 		}
 
@@ -210,7 +211,7 @@ extern "C" {
 		case RUNTIME_VERSION_1_5_80:
 			break;
 		default:
-			_FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->RuntimeVersion());
+			_FATALERROR("Unsupported runtime version %08X!\n", a_skse->RuntimeVersion());
 			return false;
 		}
 
@@ -220,27 +221,27 @@ extern "C" {
 
 	bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 	{
-		_MESSAGE("[MESSAGE] DynamicEquipmentManagerSSE loaded");
+		_MESSAGE("DynamicEquipmentManagerSSE loaded");
 
 		if (!SKSE::Init(a_skse)) {
 			return false;
 		}
 
 		if (Settings::loadSettings()) {
-			_MESSAGE("[MESSAGE] Settings loaded successfully");
+			_MESSAGE("Settings loaded successfully");
 #if _DEBUG
 			Settings::dump();
 #endif
 		} else {
-			_FATALERROR("[FATAL ERROR] Failed to load settings!\n");
+			_FATALERROR("Failed to load settings!\n");
 			return false;
 		}
 
 		auto messaging = SKSE::GetMessagingInterface();
 		if (messaging->RegisterListener("SKSE", MessageHandler)) {
-			_MESSAGE("[MESSAGE] Messaging interface registration successful");
+			_MESSAGE("Messaging interface registration successful");
 		} else {
-			_FATALERROR("[FATAL ERROR] Messaging interface registration failed!\n");
+			_FATALERROR("Messaging interface registration failed!\n");
 			return false;
 		}
 
@@ -251,7 +252,7 @@ extern "C" {
 
 		if (Settings::manageShield) {
 			Shield::InstallHooks();
-			_MESSAGE("[MESSAGE] Installed hooks for shield");
+			_MESSAGE("Installed hooks for shield");
 		}
 
 		return true;
