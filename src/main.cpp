@@ -163,21 +163,21 @@ namespace
 		case SKSE::MessagingInterface::kDataLoaded:
 			{
 				auto sourceHolder = RE::ScriptEventSourceHolder::GetSingleton();
-				sourceHolder->objectLoadedEventSource.AddEventSink(TESObjectLoadedEventHandler::GetSingleton());
+				sourceHolder->AddEventSink(TESObjectLoadedEventHandler::GetSingleton());
 				_MESSAGE("Registered object loaded event handler");
 
 				if (Settings::manageAmmo) {
-					sourceHolder->equipEventSource.AddEventSink(Ammo::TESEquipEventHandler::GetSingleton());
+					sourceHolder->AddEventSink(Ammo::TESEquipEventHandler::GetSingleton());
 					_MESSAGE("Registered ammo equip event handler");
 				}
 
 				if (Settings::manageHelmet) {
-					sourceHolder->equipEventSource.AddEventSink(Helmet::TESEquipEventHandler::GetSingleton());
+					sourceHolder->AddEventSink(Helmet::TESEquipEventHandler::GetSingleton());
 					_MESSAGE("Registered helmet equip event handler");
 				}
 
 				if (Settings::manageShield) {
-					sourceHolder->equipEventSource.AddEventSink(Shield::TESEquipEventHandler::GetSingleton());
+					sourceHolder->AddEventSink(Shield::TESEquipEventHandler::GetSingleton());
 					_MESSAGE("Registered shield equip event handler");
 				}
 			}
