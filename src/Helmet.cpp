@@ -145,7 +145,7 @@ namespace Helmet
 			for (auto& xList : *a_entry->extraList) {
 				if (xList->HasType(RE::ExtraDataType::kWorn)) {
 					auto armor = static_cast<RE::TESObjectARMO*>(a_entry->type);
-					if (armor->HasPartOf(FirstPersonFlag::kHair) && (armor->IsLightArmor() || armor->IsHeavyArmor())) {
+					if (armor->HasPartOf(FirstPersonFlag::kHair) && (armor->IsLightArmor() || armor->IsHeavyArmor() || armor->IsClothing())) {
 						auto equipManager = RE::EquipManager::GetSingleton();
 						auto player = RE::PlayerCharacter::GetSingleton();
 						equipManager->UnEquipItem(player, armor, xList, 1, armor->equipmentType, true, false);
@@ -241,7 +241,7 @@ namespace Helmet
 
 		if (armor->HasPartOf(FirstPersonFlag::kHead | FirstPersonFlag::kHair | FirstPersonFlag::kCirclet)) {
 			auto helmet = Helmet::GetSingleton();
-			if (armor->IsLightArmor() || armor->IsHeavyArmor()) {
+			if (armor->IsLightArmor() || armor->IsHeavyArmor() || armor->IsClothing()) {
 				if (a_event->isEquipping) {
 					SKSE::GetTaskInterface()->AddTask(new DelayedHelmetLocator(armor->formID));
 				} else {
